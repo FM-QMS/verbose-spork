@@ -4,7 +4,6 @@ import MetricTable from '@/components/MetricTable'
 import TrendChart from '@/components/TrendChart'
 import { ADV_DEPTS, FITTER_DEPTS, ADV_DEPT_KEYS, FITTER_DEPT_KEYS } from '@/utils/metrics'
 
-// ── helpers ──────────────────────────────────────────────────────
 function getWeekLabel(dateStr: string) {
   const d   = new Date(dateStr + 'T12:00:00')
   const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1)
@@ -16,78 +15,117 @@ function getWeekLabel(dateStr: string) {
 
 type TabId = 'adv-form' | 'fitter-form' | 'adv-trends' | 'fitter-trends' | 'adv-history' | 'fitter-history'
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'adv-form',       label: 'Advocate check-in' },
-  { id: 'fitter-form',    label: 'Fitter check-in' },
-  { id: 'adv-trends',     label: 'Advocate trends' },
-  { id: 'fitter-trends',  label: 'Fitter trends' },
-  { id: 'adv-history',    label: 'Advocate history' },
-  { id: 'fitter-history', label: 'Fitter history' },
+const TAB_GROUPS = [
+  { label: 'Check-in', tabs: [
+    { id: 'adv-form'    as TabId, label: 'Advocate' },
+    { id: 'fitter-form' as TabId, label: 'Fitter' },
+  ]},
+  { label: 'Trends', tabs: [
+    { id: 'adv-trends'    as TabId, label: 'Advocate' },
+    { id: 'fitter-trends' as TabId, label: 'Fitter' },
+  ]},
+  { label: 'History', tabs: [
+    { id: 'adv-history'    as TabId, label: 'Advocate' },
+    { id: 'fitter-history' as TabId, label: 'Fitter' },
+  ]},
 ]
 
 const DEPT_COLORS: Record<string, string> = {
-  cgm: '#185FA5', shoe: '#0F6E56', chase: '#854F0B', pfp: '#534AB7', fitter: '#993C1D',
+  cgm: '#1565C0', shoe: '#00695C', chase: '#E65100', pfp: '#4527A0', fitter: '#BF360C',
 }
 const DEPT_BG: Record<string, string> = {
-  cgm: '#E6F1FB', shoe: '#E1F5EE', chase: '#FAEEDA', pfp: '#EEEDFE', fitter: '#FAECE7',
+  cgm: '#E3F0FF', shoe: '#E0F2F1', chase: '#FFF3E0', pfp: '#EDE7F6', fitter: '#FBE9E7',
 }
-const AV_BG: Record<string, string> = {
-  cgm: '#E6F1FB', shoe: '#E1F5EE', chase: '#FAEEDA',
+const DEPT_BORDER: Record<string, string> = {
+  cgm: '#BFDBFE', shoe: '#99F6E4', chase: '#FED7AA', pfp: '#DDD6FE', fitter: '#FECACA',
 }
 
-// ── component ────────────────────────────────────────────────────
+function DeptPill({ deptKey }: { deptKey: string }) {
+  const label = (ADV_DEPTS[deptKey] || FITTER_DEPTS[deptKey])?.label || deptKey
+  return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full"
+      style={{ background: DEPT_BG[deptKey], color: DEPT_COLORS[deptKey] }}>
+      {label}
+    </span>
+  )
+}
+
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl p-5 mb-4 ${className}`}
+      style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(10,35,66,0.06)' }}>
+      {children}
+    </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#94A3B8' }}>{children}</p>
+  )
+}
+
+function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <label className="block text-xs font-semibold mb-1.5" style={{ color: '#475569' }}>
+      {children}
+      {hint && <span className="font-normal ml-1" style={{ color: '#94A3B8' }}>{hint}</span>}
+    </label>
+  )
+}
+
+function SaveButton({ onClick, saving }: { onClick: () => void; saving: boolean }) {
+  return (
+    <button onClick={onClick} disabled={saving}
+      className="px-6 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-50 transition-all"
+      style={{ background: 'linear-gradient(135deg, #1565C0, #0A2342)', boxShadow: '0 2px 8px rgba(21,101,192,0.35)' }}>
+      {saving ? 'Saving…' : 'Save check-in'}
+    </button>
+  )
+}
+
 export default function Home() {
-  const today     = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
   const [tab, setTab]           = useState<TabId>('adv-form')
   const [saving, setSaving]     = useState(false)
   const [saveMsg, setSaveMsg]   = useState('')
   const [advEntries,    setAdvEntries]    = useState<any[]>([])
   const [fitterEntries, setFitterEntries] = useState<any[]>([])
 
-  // form state — advocate
-  const [advDate,      setAdvDate]      = useState(today)
+  const [advDate, setAdvDate]           = useState(today)
   const [advSubmitter, setAdvSubmitter] = useState('')
-  const [advNotes,     setAdvNotes]     = useState('')
-  const [advWins,      setAdvWins]      = useState('')
-  const [advBlockers,  setAdvBlockers]  = useState('')
-  const [advFocus,     setAdvFocus]     = useState('')
-  const [advMetrics,   setAdvMetrics]   = useState<Record<string, Record<string, string>>>({})
-  const [advPrev,      setAdvPrev]      = useState<Record<string, Record<string, string>>>({})
+  const [advNotes, setAdvNotes]         = useState('')
+  const [advWins, setAdvWins]           = useState('')
+  const [advBlockers, setAdvBlockers]   = useState('')
+  const [advFocus, setAdvFocus]         = useState('')
+  const [advMetrics, setAdvMetrics]     = useState<Record<string, Record<string, string>>>({})
+  const [advPrev, setAdvPrev]           = useState<Record<string, Record<string, string>>>({})
   const [advAdvocates, setAdvAdvocates] = useState<Record<string, any[]>>({})
 
-  // form state — fitter
-  const [fitDate,      setFitDate]      = useState(today)
+  const [fitDate, setFitDate]           = useState(today)
   const [fitSubmitter, setFitSubmitter] = useState('')
-  const [fitNotes,     setFitNotes]     = useState('')
-  const [fitWins,      setFitWins]      = useState('')
-  const [fitBlockers,  setFitBlockers]  = useState('')
-  const [fitFocus,     setFitFocus]     = useState('')
-  const [fitMetrics,   setFitMetrics]   = useState<Record<string, Record<string, string>>>({})
-  const [fitPrev,      setFitPrev]      = useState<Record<string, Record<string, string>>>({})
+  const [fitNotes, setFitNotes]         = useState('')
+  const [fitWins, setFitWins]           = useState('')
+  const [fitBlockers, setFitBlockers]   = useState('')
+  const [fitFocus, setFitFocus]         = useState('')
+  const [fitMetrics, setFitMetrics]     = useState<Record<string, Record<string, string>>>({})
+  const [fitPrev, setFitPrev]           = useState<Record<string, Record<string, string>>>({})
 
-  // ── load data ──
   const loadEntries = useCallback(async (type: 'advocate' | 'fitter') => {
     const res  = await fetch(`/api/checkins?type=${type}`)
     const data = await res.json()
     if (Array.isArray(data)) {
-      if (type === 'advocate') setAdvEntries(data)
-      else setFitterEntries(data)
+      type === 'advocate' ? setAdvEntries(data) : setFitterEntries(data)
     }
   }, [])
 
   useEffect(() => { loadEntries('advocate'); loadEntries('fitter') }, [loadEntries])
-
-  // ── tab switching triggers load ──
   useEffect(() => {
-    if (tab === 'adv-trends' || tab === 'adv-history')    loadEntries('advocate')
+    if (tab === 'adv-trends'    || tab === 'adv-history')    loadEntries('advocate')
     if (tab === 'fitter-trends' || tab === 'fitter-history') loadEntries('fitter')
   }, [tab, loadEntries])
 
-  // ── metric change helpers ──
-  function setMetricVal(
-    setter: typeof setAdvMetrics,
-    deptKey: string, id: string, val: string
-  ) {
+  function setMetricVal(setter: typeof setAdvMetrics, deptKey: string, id: string, val: string) {
     setter(prev => ({ ...prev, [deptKey]: { ...(prev[deptKey] || {}), [id]: val } }))
   }
 
@@ -99,18 +137,15 @@ export default function Home() {
     })
   }
 
-  // ── submit ──
   async function handleSubmit(type: 'advocate' | 'fitter') {
     setSaving(true)
-    const isAdv = type === 'advocate'
-    const date  = isAdv ? advDate : fitDate
-
-    // build metrics object — only include fields with values
-    const metricsObj: Record<string, Record<string, number>> = {}
+    const isAdv   = type === 'advocate'
+    const date    = isAdv ? advDate : fitDate
     const deptKeys = isAdv ? ADV_DEPT_KEYS : FITTER_DEPT_KEYS
     const depts    = isAdv ? ADV_DEPTS : FITTER_DEPTS
     const mVals    = isAdv ? advMetrics : fitMetrics
 
+    const metricsObj: Record<string, Record<string, number>> = {}
     deptKeys.forEach(d => {
       metricsObj[d] = {}
       ;(depts as any)[d].metrics.forEach((m: any) => {
@@ -119,41 +154,36 @@ export default function Home() {
       })
     })
 
-    // advocates
     let advocatesObj: any = null
     if (isAdv) {
       advocatesObj = {}
       ADV_DEPT_KEYS.forEach(d => {
-        advocatesObj[d] = (advAdvocates[d] || ADV_DEPTS[d].advocates.map(a => ({
-          name: a.name, out: '', in: '', talk: '', tasks: ''
-        })))
+        advocatesObj[d] = (advAdvocates[d] || ADV_DEPTS[d].advocates.map(a => ({ name: a.name, out: '', in: '', talk: '', tasks: '' })))
       })
     }
 
     const body = {
       type, week_date: date, week_label: getWeekLabel(date),
-      submitter:  isAdv ? advSubmitter : fitSubmitter,
-      notes_meta: isAdv ? advNotes     : fitNotes,
-      metrics:    metricsObj,
-      advocates:  advocatesObj,
-      wins:       isAdv ? advWins     : fitWins,
-      blockers:   isAdv ? advBlockers : fitBlockers,
-      focus:      isAdv ? advFocus    : fitFocus,
+      submitter: isAdv ? advSubmitter : fitSubmitter,
+      notes_meta: isAdv ? advNotes : fitNotes,
+      metrics: metricsObj, advocates: advocatesObj,
+      wins: isAdv ? advWins : fitWins,
+      blockers: isAdv ? advBlockers : fitBlockers,
+      focus: isAdv ? advFocus : fitFocus,
     }
 
     const res = await fetch('/api/checkins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     setSaving(false)
     if (res.ok) {
-      setSaveMsg('Check-in saved!')
-      setTimeout(() => setSaveMsg(''), 4000)
+      setSaveMsg('Check-in saved successfully.')
+      setTimeout(() => setSaveMsg(''), 5000)
       loadEntries(type)
     } else {
       const err = await res.json()
-      setSaveMsg('Error: ' + (err.error || 'unknown'))
+      setSaveMsg('Error: ' + (err.error || 'unknown error'))
     }
   }
 
-  // ── clear ──
   function clearForm(type: 'advocate' | 'fitter') {
     if (type === 'advocate') {
       setAdvMetrics({}); setAdvPrev({}); setAdvAdvocates({})
@@ -164,76 +194,85 @@ export default function Home() {
     }
   }
 
-  // ── render helpers ──
-  const DeptPill = ({ deptKey }: { deptKey: string }) => {
-    const label = (ADV_DEPTS[deptKey] || FITTER_DEPTS[deptKey])?.label || deptKey
-    return (
-      <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-        style={{ background: DEPT_BG[deptKey], color: DEPT_COLORS[deptKey] }}>
-        {label}
-      </span>
-    )
-  }
-
-  const Section = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`bg-white border border-[#E5E2DC] rounded-xl p-5 mb-4 ${className}`}>{children}</div>
-  )
-
-  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">{children}</p>
-  )
-
+  // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F7F6F3]">
-      {/* header */}
-      <div className="border-b border-[#E5E2DC] bg-white px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-800">Weekly operations check-in</h1>
-        <p className="text-sm text-gray-400 mt-0.5">CGM · Shoe Tech · Chase · PFP · Fitter</p>
-      </div>
+    <div style={{ minHeight: '100vh', background: '#EEF2F7' }}>
 
-      {/* tabs */}
-      <div className="border-b border-[#E5E2DC] bg-white px-6 overflow-x-auto">
-        <div className="flex gap-0 w-max">
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap
-                ${tab === t.id ? 'border-gray-800 text-gray-800' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-              {t.label}
-            </button>
-          ))}
+      {/* top bar */}
+      <div style={{ background: 'linear-gradient(135deg, #0A2342 0%, #1565C0 100%)', boxShadow: '0 2px 12px rgba(10,35,66,0.25)' }}>
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-white leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                Weekly Check-in
+              </h1>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Operations · Internal</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        {/* tabs */}
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex gap-1 overflow-x-auto pb-0">
+            {TAB_GROUPS.map(group => (
+              <div key={group.label} className="flex items-center gap-0.5 mr-4">
+                <span className="text-xs mr-2" style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{group.label}</span>
+                {group.tabs.map(t => (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    className="px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-all rounded-t-lg"
+                    style={tab === t.id
+                      ? { background: '#EEF2F7', color: '#0A2342', fontWeight: 600 }
+                      : { color: 'rgba(255,255,255,0.7)', background: 'transparent' }
+                    }>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      {/* content */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
 
-        {/* ── ADVOCATE CHECK-IN ── */}
+        {/* ── ADVOCATE FORM ── */}
         {tab === 'adv-form' && (
           <div>
-            <Section>
-              <SectionTitle>Submission info</SectionTitle>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+            <Card>
+              <SectionLabel>Submission info</SectionLabel>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Week of</label>
+                  <FieldLabel>Week of</FieldLabel>
                   <input type="date" value={advDate} onChange={e => setAdvDate(e.target.value)} />
-                  <p className="text-xs text-gray-400 mt-1">{getWeekLabel(advDate)}</p>
+                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#1565C0' }}>{getWeekLabel(advDate)}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Submitted by</label>
-                  <input type="text" placeholder="Your name" value={advSubmitter} onChange={e => setAdvSubmitter(e.target.value)} />
+                  <FieldLabel>Submitted by</FieldLabel>
+                  <input type="text" placeholder="Manager name" value={advSubmitter} onChange={e => setAdvSubmitter(e.target.value)} />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Notes <span className="text-gray-300">(optional)</span></label>
-                <input type="text" placeholder="e.g. Holiday week, short-staffed..." value={advNotes} onChange={e => setAdvNotes(e.target.value)} />
-              </div>
-            </Section>
+              <FieldLabel hint="(optional)">Notes</FieldLabel>
+              <input type="text" placeholder="e.g. Holiday week, team short-staffed…" value={advNotes} onChange={e => setAdvNotes(e.target.value)} />
+            </Card>
 
             {ADV_DEPT_KEYS.map(d => (
-              <Section key={d}>
-                <div className="flex items-center gap-2 mb-4">
+              <Card key={d}>
+                <div className="flex items-center gap-2 mb-5">
                   <DeptPill deptKey={d} />
+                  <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
-                <p className="text-xs text-gray-400 mb-3 font-medium">Report metrics</p>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>Report metrics</p>
                 <MetricTable
                   metrics={ADV_DEPTS[d].metrics}
                   values={advMetrics[d] || {}}
@@ -242,24 +281,22 @@ export default function Home() {
                     isPrev ? setMetricVal(setAdvPrev, d, id, val) : setMetricVal(setAdvMetrics, d, id, val)
                   }
                 />
-                <div className="border-t border-[#E5E2DC] my-4" />
-                <p className="text-xs text-gray-400 mb-3 font-medium">Phone activity — per advocate</p>
+                <div className="my-5" style={{ borderTop: '1px solid #F1F5F9' }} />
+                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>Phone activity — per advocate</p>
                 <div className="space-y-3">
                   {ADV_DEPTS[d].advocates.map((a, i) => {
                     const av = (advAdvocates[d] || [])[i] || { name: a.name, out: '', in: '', talk: '', tasks: '' }
                     return (
-                      <div key={a.name} className="border border-[#E5E2DC] rounded-lg p-3 bg-[#FAFAF8]">
+                      <div key={a.name} className="rounded-lg p-3.5" style={{ background: DEPT_BG[d] + '60', border: `1px solid ${DEPT_BORDER[d]}` }}>
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-                            style={{ background: AV_BG[d], color: DEPT_COLORS[d] }}>{a.initials}</div>
-                          <span className="text-sm font-medium text-gray-700">{a.name}</span>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ background: DEPT_COLORS[d], color: 'white' }}>{a.initials}</div>
+                          <span className="text-sm font-semibold" style={{ color: '#1E293B' }}>{a.name}</span>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
-                          {['out','in','talk','tasks'].map((field, fi) => (
+                          {(['out','in','talk','tasks'] as const).map((field, fi) => (
                             <div key={field}>
-                              <label className="block text-xs text-gray-400 mb-1">
-                                {['Outbound','Inbound','Talk time','Tasks open'][fi]}
-                              </label>
+                              <FieldLabel>{['Outbound','Inbound','Talk time','Tasks open'][fi]}</FieldLabel>
                               <input
                                 type={field === 'talk' ? 'text' : 'number'}
                                 min="0"
@@ -274,68 +311,69 @@ export default function Home() {
                     )
                   })}
                 </div>
-              </Section>
+              </Card>
             ))}
 
-            <Section>
-              <SectionTitle>Weekly narrative</SectionTitle>
-              <div className="space-y-3">
+            <Card>
+              <SectionLabel>Weekly narrative</SectionLabel>
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Wins &amp; progress</label>
-                  <textarea placeholder="e.g. Unfilled orders down across all three teams..." value={advWins} onChange={e => setAdvWins(e.target.value)} />
+                  <FieldLabel hint="— what moved the needle?">Wins &amp; progress</FieldLabel>
+                  <textarea placeholder="e.g. Unfilled orders down across all three teams, prior auth volume stabilizing…" value={advWins} onChange={e => setAdvWins(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Blockers &amp; risks</label>
-                  <textarea placeholder="e.g. Prior auth volume still elevated..." value={advBlockers} onChange={e => setAdvBlockers(e.target.value)} />
+                  <FieldLabel>Blockers &amp; risks</FieldLabel>
+                  <textarea placeholder="e.g. Prior auth volume still elevated, awaiting SNF/Hospice coding resolution…" value={advBlockers} onChange={e => setAdvBlockers(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Top priorities next week</label>
-                  <textarea placeholder="e.g. Push missing info below 200 on CGM side..." value={advFocus} onChange={e => setAdvFocus(e.target.value)} />
+                  <FieldLabel>Top priorities next week</FieldLabel>
+                  <textarea placeholder="e.g. Push missing info below 200 on CGM side, reduce missed shipments…" value={advFocus} onChange={e => setAdvFocus(e.target.value)} />
                 </div>
               </div>
-            </Section>
+            </Card>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => clearForm('advocate')} className="px-4 py-2 text-sm font-medium text-gray-500 border border-[#E0DDD6] rounded-lg hover:bg-gray-50 transition-colors">Clear</button>
-              <button onClick={() => handleSubmit('advocate')} disabled={saving}
-                className="px-5 py-2 text-sm font-semibold bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors">
-                {saving ? 'Saving…' : 'Save check-in'}
+            <div className="flex justify-end items-center gap-3 mt-2">
+              <button onClick={() => clearForm('advocate')}
+                className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors"
+                style={{ color: '#64748B', border: '1.5px solid #E2E8F0', background: 'white' }}>
+                Clear form
               </button>
+              <SaveButton onClick={() => handleSubmit('advocate')} saving={saving} />
             </div>
             {saveMsg && (
-              <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium ${saveMsg.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-[#EAF3DE] text-[#2E5A0D]'}`}>
-                {saveMsg}
+              <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium ${saveMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border border-red-200' : 'border'}`}
+                style={!saveMsg.startsWith('Error') ? { background: '#E8F5E9', color: '#2E7D32', borderColor: '#A5D6A7' } : {}}>
+                {saveMsg.startsWith('Error') ? '⚠ ' : '✓ '}{saveMsg}
               </div>
             )}
           </div>
         )}
 
-        {/* ── FITTER CHECK-IN ── */}
+        {/* ── FITTER FORM ── */}
         {tab === 'fitter-form' && (
           <div>
-            <Section>
-              <SectionTitle>Submission info</SectionTitle>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+            <Card>
+              <SectionLabel>Submission info</SectionLabel>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Week of</label>
+                  <FieldLabel>Week of</FieldLabel>
                   <input type="date" value={fitDate} onChange={e => setFitDate(e.target.value)} />
-                  <p className="text-xs text-gray-400 mt-1">{getWeekLabel(fitDate)}</p>
+                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#1565C0' }}>{getWeekLabel(fitDate)}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Submitted by</label>
-                  <input type="text" placeholder="Your name" value={fitSubmitter} onChange={e => setFitSubmitter(e.target.value)} />
+                  <FieldLabel>Submitted by</FieldLabel>
+                  <input type="text" placeholder="Manager name" value={fitSubmitter} onChange={e => setFitSubmitter(e.target.value)} />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Notes <span className="text-gray-300">(optional)</span></label>
-                <input type="text" placeholder="e.g. Holiday week..." value={fitNotes} onChange={e => setFitNotes(e.target.value)} />
-              </div>
-            </Section>
+              <FieldLabel hint="(optional)">Notes</FieldLabel>
+              <input type="text" placeholder="e.g. Holiday week…" value={fitNotes} onChange={e => setFitNotes(e.target.value)} />
+            </Card>
 
             {FITTER_DEPT_KEYS.map(d => (
-              <Section key={d}>
-                <div className="flex items-center gap-2 mb-4">
+              <Card key={d}>
+                <div className="flex items-center gap-2 mb-5">
                   <DeptPill deptKey={d} />
+                  <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
                 <MetricTable
                   metrics={FITTER_DEPTS[d].metrics}
@@ -345,37 +383,42 @@ export default function Home() {
                     isPrev ? setMetricVal(setFitPrev, d, id, val) : setMetricVal(setFitMetrics, d, id, val)
                   }
                 />
-              </Section>
+              </Card>
             ))}
 
-            <Section>
-              <SectionTitle>Weekly narrative</SectionTitle>
-              <div className="space-y-3">
+            <Card>
+              <SectionLabel>Weekly narrative</SectionLabel>
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Wins &amp; progress</label>
-                  <textarea placeholder="e.g. Fitter declined numbers reduced this week..." value={fitWins} onChange={e => setFitWins(e.target.value)} />
+                  <FieldLabel hint="— what moved the needle?">Wins &amp; progress</FieldLabel>
+                  <textarea placeholder="e.g. Fitter declined numbers reduced this week…" value={fitWins} onChange={e => setFitWins(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Blockers &amp; risks</label>
-                  <textarea placeholder="e.g. Unassigned patients backlog growing..." value={fitBlockers} onChange={e => setFitBlockers(e.target.value)} />
+                  <FieldLabel>Blockers &amp; risks</FieldLabel>
+                  <textarea placeholder="e.g. Unassigned patients backlog growing…" value={fitBlockers} onChange={e => setFitBlockers(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Top priorities next week</label>
-                  <textarea placeholder="e.g. Clear pending completed RX queue..." value={fitFocus} onChange={e => setFitFocus(e.target.value)} />
+                  <FieldLabel>Top priorities next week</FieldLabel>
+                  <textarea placeholder="e.g. Clear pending completed RX queue…" value={fitFocus} onChange={e => setFitFocus(e.target.value)} />
                 </div>
               </div>
-            </Section>
+            </Card>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => clearForm('fitter')} className="px-4 py-2 text-sm font-medium text-gray-500 border border-[#E0DDD6] rounded-lg hover:bg-gray-50 transition-colors">Clear</button>
-              <button onClick={() => handleSubmit('fitter')} disabled={saving}
-                className="px-5 py-2 text-sm font-semibold bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors">
-                {saving ? 'Saving…' : 'Save check-in'}
+            <div className="flex justify-end items-center gap-3 mt-2">
+              <button onClick={() => clearForm('fitter')}
+                className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors"
+                style={{ color: '#64748B', border: '1.5px solid #E2E8F0', background: 'white' }}>
+                Clear form
               </button>
+              <SaveButton onClick={() => handleSubmit('fitter')} saving={saving} />
             </div>
             {saveMsg && (
-              <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium ${saveMsg.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-[#EAF3DE] text-[#2E5A0D]'}`}>
-                {saveMsg}
+              <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium border`}
+                style={saveMsg.startsWith('Error')
+                  ? { background: '#FFEBEE', color: '#C62828', borderColor: '#FFCDD2' }
+                  : { background: '#E8F5E9', color: '#2E7D32', borderColor: '#A5D6A7' }
+                }>
+                {saveMsg.startsWith('Error') ? '⚠ ' : '✓ '}{saveMsg}
               </div>
             )}
           </div>
@@ -385,10 +428,13 @@ export default function Home() {
         {tab === 'adv-trends' && (
           <div>
             {ADV_DEPT_KEYS.map(d => (
-              <Section key={d}>
-                <div className="flex items-center gap-2 mb-4"><DeptPill deptKey={d} /></div>
+              <Card key={d}>
+                <div className="flex items-center gap-2 mb-5">
+                  <DeptPill deptKey={d} />
+                  <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
+                </div>
                 <TrendChart deptKey={d} metrics={ADV_DEPTS[d].metrics} entries={advEntries} accentColor={DEPT_COLORS[d]} />
-              </Section>
+              </Card>
             ))}
           </div>
         )}
@@ -397,82 +443,130 @@ export default function Home() {
         {tab === 'fitter-trends' && (
           <div>
             {FITTER_DEPT_KEYS.map(d => (
-              <Section key={d}>
-                <div className="flex items-center gap-2 mb-4"><DeptPill deptKey={d} /></div>
+              <Card key={d}>
+                <div className="flex items-center gap-2 mb-5">
+                  <DeptPill deptKey={d} />
+                  <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
+                </div>
                 <TrendChart deptKey={d} metrics={FITTER_DEPTS[d].metrics} entries={fitterEntries} accentColor={DEPT_COLORS[d]} />
-              </Section>
+              </Card>
             ))}
           </div>
         )}
 
         {/* ── ADVOCATE HISTORY ── */}
         {tab === 'adv-history' && (
-          <Section>
-            <SectionTitle>Advocate check-in history</SectionTitle>
+          <Card>
+            <SectionLabel>Advocate check-in history</SectionLabel>
             {advEntries.length === 0
-              ? <p className="text-sm text-gray-400 text-center py-8">No check-ins saved yet.</p>
+              ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <p className="text-sm font-medium" style={{ color: '#94A3B8' }}>No check-ins saved yet</p>
+                </div>
+              )
               : [...advEntries].reverse().map(e => (
-                <div key={e.id} className="border border-[#E5E2DC] rounded-lg p-4 mb-3">
-                  <p className="text-sm font-semibold text-gray-700">{e.week_label}</p>
-                  {e.submitter && <p className="text-xs text-gray-400 mt-0.5">{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {ADV_DEPT_KEYS.map(d => {
-                      const m = e.metrics?.[d] || {}
-                      const entries = Object.entries(m).slice(0, 4)
-                      if (!entries.length) return null
-                      return entries.map(([k, v]) => {
-                        const def = ADV_DEPTS[d].metrics.find(x => x.id === k)
-                        return (
-                          <span key={k} className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
-                            {def?.label || k}: <strong>{String(v)}</strong>
-                          </span>
-                        )
-                      })
-                    })}
+                <div key={e.id} className="rounded-lg p-4 mb-3" style={{ border: '1px solid #E2E8F0', background: '#FAFBFC' }}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: '#0A2342', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{e.week_label}</p>
+                      {e.submitter && <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
+                    </div>
                   </div>
-                  {e.wins    && <p className="text-xs text-gray-500 mt-2"><strong className="text-gray-700">Wins:</strong> {e.wins}</p>}
-                  {e.blockers && <p className="text-xs text-gray-500 mt-1"><strong className="text-gray-700">Blockers:</strong> {e.blockers}</p>}
+                  {ADV_DEPT_KEYS.map(d => {
+                    const m = e.metrics?.[d] || {}
+                    const entries = Object.entries(m)
+                    if (!entries.length) return null
+                    return (
+                      <div key={d} className="mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: DEPT_COLORS[d] }}>
+                          {ADV_DEPTS[d].label}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {entries.slice(0, 5).map(([k, v]) => {
+                            const def = ADV_DEPTS[d].metrics.find(x => x.id === k)
+                            return (
+                              <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                                style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
+                                {def?.label || k}: <strong>{String(v)}</strong>
+                              </span>
+                            )
+                          })}
+                          {entries.length > 5 && (
+                            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                              +{entries.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {e.wins    && <p className="text-xs mt-2" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Wins:</strong> {e.wins}</p>}
+                  {e.blockers && <p className="text-xs mt-1" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Blockers:</strong> {e.blockers}</p>}
                 </div>
               ))
             }
-          </Section>
+          </Card>
         )}
 
         {/* ── FITTER HISTORY ── */}
         {tab === 'fitter-history' && (
-          <Section>
-            <SectionTitle>Fitter check-in history</SectionTitle>
+          <Card>
+            <SectionLabel>Fitter check-in history</SectionLabel>
             {fitterEntries.length === 0
-              ? <p className="text-sm text-gray-400 text-center py-8">No check-ins saved yet.</p>
+              ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <p className="text-sm font-medium" style={{ color: '#94A3B8' }}>No check-ins saved yet</p>
+                </div>
+              )
               : [...fitterEntries].reverse().map(e => (
-                <div key={e.id} className="border border-[#E5E2DC] rounded-lg p-4 mb-3">
-                  <p className="text-sm font-semibold text-gray-700">{e.week_label}</p>
-                  {e.submitter && <p className="text-xs text-gray-400 mt-0.5">{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {FITTER_DEPT_KEYS.map(d => {
-                      const m = e.metrics?.[d] || {}
-                      const entries = Object.entries(m).slice(0, 4)
-                      if (!entries.length) return null
-                      return entries.map(([k, v]) => {
-                        const def = FITTER_DEPTS[d].metrics.find(x => x.id === k)
-                        return (
-                          <span key={k} className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
-                            {def?.label || k}: <strong>{String(v)}</strong>
-                          </span>
-                        )
-                      })
-                    })}
-                  </div>
-                  {e.wins     && <p className="text-xs text-gray-500 mt-2"><strong className="text-gray-700">Wins:</strong> {e.wins}</p>}
-                  {e.blockers && <p className="text-xs text-gray-500 mt-1"><strong className="text-gray-700">Blockers:</strong> {e.blockers}</p>}
+                <div key={e.id} className="rounded-lg p-4 mb-3" style={{ border: '1px solid #E2E8F0', background: '#FAFBFC' }}>
+                  <p className="text-sm font-bold mb-0.5" style={{ color: '#0A2342', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{e.week_label}</p>
+                  {e.submitter && <p className="text-xs mb-2" style={{ color: '#64748B' }}>{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
+                  {FITTER_DEPT_KEYS.map(d => {
+                    const m = e.metrics?.[d] || {}
+                    const entries = Object.entries(m)
+                    if (!entries.length) return null
+                    return (
+                      <div key={d} className="mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: DEPT_COLORS[d] }}>
+                          {FITTER_DEPTS[d].label}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {entries.slice(0, 5).map(([k, v]) => {
+                            const def = FITTER_DEPTS[d].metrics.find(x => x.id === k)
+                            return (
+                              <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                                style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
+                                {def?.label || k}: <strong>{String(v)}</strong>
+                              </span>
+                            )
+                          })}
+                          {entries.length > 5 && (
+                            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                              +{entries.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {e.wins     && <p className="text-xs mt-2" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Wins:</strong> {e.wins}</p>}
+                  {e.blockers && <p className="text-xs mt-1" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Blockers:</strong> {e.blockers}</p>}
                 </div>
               ))
             }
-          </Section>
+          </Card>
         )}
 
+      </div>
+
+      {/* footer */}
+      <div className="max-w-4xl mx-auto px-6 py-6 text-center">
+        <p className="text-xs" style={{ color: '#94A3B8' }}>
+          © {new Date().getFullYear()} QMS Weekly Check-in · Internal use only
+        </p>
       </div>
     </div>
   )

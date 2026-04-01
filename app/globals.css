@@ -2,23 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --cgm:   #185FA5;
-  --shoe:  #0F6E56;
-  --chase: #854F0B;
-  --pfp:   #534AB7;
-  --fitter:#993C1D;
+  --q-navy:        #0A2342;
+  --q-blue:        #1565C0;
+  --q-blue-mid:    #1976D2;
+  --q-blue-light:  #E3F0FF;
+  --q-blue-pale:   #F0F6FF;
+  --q-green:       #2E7D32;
+  --q-green-light: #E8F5E9;
+  --q-red:         #C62828;
+  --q-red-light:   #FFEBEE;
+  --q-gray-50:     #F8FAFC;
+  --q-gray-100:    #F1F5F9;
+  --q-gray-200:    #E2E8F0;
+  --q-gray-300:    #CBD5E1;
+  --q-gray-400:    #94A3B8;
+  --q-gray-500:    #64748B;
+  --q-gray-600:    #475569;
+  --q-gray-700:    #334155;
+  --q-gray-800:    #1E293B;
+  --q-white:       #FFFFFF;
+  --q-shadow-sm:   0 1px 3px rgba(10,35,66,0.08);
+  --q-shadow:      0 4px 12px rgba(10,35,66,0.10), 0 2px 4px rgba(10,35,66,0.06);
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'DM Sans', sans-serif;
-  background: #F7F6F3;
-  color: #1a1a1a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #F0F4F8;
+  color: var(--q-gray-800);
   min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 input[type="number"],
@@ -27,21 +50,23 @@ input[type="date"],
 select,
 textarea {
   width: 100%;
-  border: 1px solid #E0DDD6;
+  border: 1.5px solid var(--q-gray-200);
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 8px 11px;
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  background: #fff;
-  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+  background: var(--q-white);
+  color: var(--q-gray-800);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: #999;
+  border-color: var(--q-blue-mid);
+  box-shadow: 0 0 0 3px rgba(21,101,192,0.10);
 }
-textarea { resize: vertical; min-height: 64px; }
+input::placeholder, textarea::placeholder { color: var(--q-gray-400); }
+textarea { resize: vertical; min-height: 72px; }
 
-.delta-down { background: #EAF3DE; color: #2E5A0D; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
-.delta-up   { background: #FCEBEB; color: #8B1F1F; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
-.delta-flat { background: #EDECE8; color: #888; font-size: 11px; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.delta-down { background: var(--q-green-light); color: var(--q-green); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.delta-up   { background: var(--q-red-light);   color: var(--q-red);   font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.delta-flat { background: var(--q-gray-100); color: var(--q-gray-400); font-size: 11px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }

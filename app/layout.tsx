@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Weekly Ops Check-in',
+  title: 'QMS Weekly Check-in',
   description: 'Weekly operations check-in for CGM, Shoe Tech, Chase, PFP and Fitter teams',
 }
 
