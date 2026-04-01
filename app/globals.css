@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --cgm:   #185FA5;
+  --shoe:  #0F6E56;
+  --chase: #854F0B;
+  --pfp:   #534AB7;
+  --fitter:#993C1D;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F7F6F3;
+  color: #1a1a1a;
+  min-height: 100vh;
+}
+
+input[type="number"],
+input[type="text"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #E0DDD6;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #999;
+}
+textarea { resize: vertical; min-height: 64px; }
+
+.delta-down { background: #EAF3DE; color: #2E5A0D; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.delta-up   { background: #FCEBEB; color: #8B1F1F; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.delta-flat { background: #EDECE8; color: #888; font-size: 11px; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
