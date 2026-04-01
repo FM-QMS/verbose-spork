@@ -30,7 +30,7 @@ export default function UploadButton({ onUploaded }: Props) {
     setResult(null)
 
     try {
-      const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.mjs' as any)
+      const XLSX = await import('xlsx')
       const buffer = await file.arrayBuffer()
       const wb     = XLSX.read(buffer, { type: 'array' })
 
