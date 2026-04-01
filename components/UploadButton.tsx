@@ -58,8 +58,14 @@ export default function UploadButton({ onUploaded }: Props) {
           if (a.toLowerCase().includes('notes'))      notesMeta = b
         }
 
+        // Accept MM/DD/YYYY and convert to YYYY-MM-DD
+        if (weekDate && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(weekDate)) {
+          const [mm, dd, yyyy] = weekDate.split('/')
+          weekDate = `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`
+        }
+
         if (!weekDate || !/^\d{4}-\d{2}-\d{2}$/.test(weekDate)) {
-          setResult({ success: false, message: `Sheet "${sheetName}": Week Date is missing or not in YYYY-MM-DD format.` })
+          setResult({ success: false, message: `Sheet "${sheetName}": Week Date is missing or not in MM/DD/YYYY format (e.g. 04/07/2026).` })
           setStatus('error')
           return
         }
