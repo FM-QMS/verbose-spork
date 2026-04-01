@@ -37,13 +37,28 @@ export default function UploadButton({ onUploaded }: Props) {
       const entries: any[] = []
 
       for (const sheetName of wb.SheetNames) {
-        if (!sheetName.toLowerCase().includes('check-in') && !sheetName.toLowerCase().includes('checkin')) continue
-        const isAdv    = sheetName.toLowerCase().includes('advocate')
-        const isFitter = sheetName.toLowerCase().includes('fitter')
-        if (!isAdv && !isFitter) continue
-
+        if (sheetName.toLowerCase().includes('instruction')) continue
+        const lc = sheetName.toLowerCase()
+        const isDateSheet    = /^\d{2}-\d{2}-\d{4}$/.test(sheetName)
+        const isNamedAdv     = lc.includes('advocate')
+        const isNamedFitter  = lc.includes('fitter')
+        if (!isDateSheet && !isNamedAdv && !isNamedFitter) continue
         const ws   = wb.Sheets[sheetName]
         const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+
+        // Determine type: from sheet name or from "Type: advocate/fitter" row in content
+        let isAdv    = isNamedAdv
+        let isFitter = isNamedFitter
+        if (isDateSheet) {
+          const typeRow = rows.find((r: any[]) => String(r?.[0] || '').includes('Type:'))
+          if (typeRow) {
+            const ts = String(typeRow[0]).toLowerCase()
+            isAdv    = ts.includes('advocate')
+            isFitter = ts.includes('fitter')
+          } else {
+            isAdv = true
+          }
+        }
 
         // ── parse submission info ──
         let weekDate  = ''
