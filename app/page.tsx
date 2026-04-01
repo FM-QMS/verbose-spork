@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import MetricTable from '@/components/MetricTable'
 import TrendChart from '@/components/TrendChart'
+import UploadButton from '@/components/UploadButton'
 import { ADV_DEPTS, FITTER_DEPTS, ADV_DEPT_KEYS, FITTER_DEPT_KEYS } from '@/utils/metrics'
 
 function getWeekLabel(dateStr: string) {
@@ -250,6 +251,19 @@ export default function Home() {
         {tab === 'adv-form' && (
           <div>
             <Card>
+              <SectionLabel>Upload from spreadsheet</SectionLabel>
+              <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
+                Use the QMS template to fill in data offline, then upload here. Uploaded data is saved directly to the database and will appear in Trends and History.
+              </p>
+              <UploadButton onUploaded={() => loadEntries('advocate')} />
+            </Card>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 16px' }}>
+              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>or fill in manually below</span>
+              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+            </div>
+            <Card>
               <SectionLabel>Submission info</SectionLabel>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -352,6 +366,19 @@ export default function Home() {
         {/* ── FITTER FORM ── */}
         {tab === 'fitter-form' && (
           <div>
+            <Card>
+              <SectionLabel>Upload from spreadsheet</SectionLabel>
+              <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
+                Use the QMS template to fill in data offline, then upload here. Uploaded data is saved directly to the database and will appear in Trends and History.
+              </p>
+              <UploadButton onUploaded={() => loadEntries('fitter')} />
+            </Card>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 16px' }}>
+              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>or fill in manually below</span>
+              <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+            </div>
             <Card>
               <SectionLabel>Submission info</SectionLabel>
               <div className="grid grid-cols-2 gap-4 mb-4">
