@@ -460,7 +460,13 @@ export default function Home() {
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
-                <TrendChart deptKey={d} metrics={ADV_DEPTS[d].metrics} entries={advEntries} accentColor={DEPT_COLORS[d]} />
+                <TrendChart
+                  deptKey={d}
+                  metrics={ADV_DEPTS[d].metrics}
+                  entries={advEntries}
+                  accentColor={DEPT_COLORS[d]}
+                  advocates={ADV_DEPTS[d].advocates}
+                />
               </Card>
             ))}
           </div>
@@ -503,28 +509,55 @@ export default function Home() {
                   {ADV_DEPT_KEYS.map(d => {
                     const m = e.metrics?.[d] || {}
                     const entries = Object.entries(m)
-                    if (!entries.length) return null
+                    const advList = e.advocates?.[d] || []
+                    if (!entries.length && !advList.length) return null
                     return (
-                      <div key={d} className="mb-2">
+                      <div key={d} className="mb-3">
                         <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: DEPT_COLORS[d] }}>
                           {ADV_DEPTS[d].label}
                         </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {entries.slice(0, 5).map(([k, v]) => {
-                            const def = ADV_DEPTS[d].metrics.find(x => x.id === k)
-                            return (
-                              <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                                style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
-                                {def?.label || k}: <strong>{String(v)}</strong>
+                        {entries.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {entries.slice(0, 5).map(([k, v]) => {
+                              const def = ADV_DEPTS[d].metrics.find(x => x.id === k)
+                              return (
+                                <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                                  style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
+                                  {def?.label || k}: <strong>{String(v)}</strong>
+                                </span>
+                              )
+                            })}
+                            {entries.length > 5 && (
+                              <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                                +{entries.length - 5} more
                               </span>
-                            )
-                          })}
-                          {entries.length > 5 && (
-                            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
-                              +{entries.length - 5} more
-                            </span>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        )}
+                        {advList.length > 0 && (
+                          <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${DEPT_BORDER[d]}` }}>
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr style={{ background: DEPT_BG[d] }}>
+                                  {['Advocate','Out','In','Talk time','Tasks'].map(h => (
+                                    <th key={h} className="py-1.5 px-2 text-left font-semibold" style={{ color: DEPT_COLORS[d] }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {advList.map((a: any, i: number) => (
+                                  <tr key={a.name} style={{ background: i % 2 === 0 ? '#fff' : '#F8FAFC', borderTop: `1px solid ${DEPT_BORDER[d]}` }}>
+                                    <td className="py-1.5 px-2 font-semibold" style={{ color: '#334155' }}>{a.name}</td>
+                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.out || '—'}</td>
+                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.in || '—'}</td>
+                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.talk || '—'}</td>
+                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.tasks || '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
