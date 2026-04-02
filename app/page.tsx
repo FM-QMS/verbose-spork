@@ -4,6 +4,7 @@ import MetricTable from '@/components/MetricTable'
 import TrendChart from '@/components/TrendChart'
 import UploadButton from '@/components/UploadButton'
 import InsightsTab from '@/components/InsightsTab'
+import HistoryTable from '@/components/HistoryTable'
 import { ADV_DEPTS, FITTER_DEPTS, ADV_DEPT_KEYS, FITTER_DEPT_KEYS } from '@/utils/metrics'
 
 function getWeekLabel(dateStr: string) {
@@ -495,81 +496,7 @@ export default function Home() {
         {tab === 'adv-history' && (
           <Card>
             <SectionLabel>Advocate check-in history</SectionLabel>
-            {advEntries.length === 0
-              ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                  <p className="text-sm font-medium" style={{ color: '#94A3B8' }}>No check-ins saved yet</p>
-                </div>
-              )
-              : [...advEntries].reverse().map(e => (
-                <div key={e.id} className="rounded-lg p-4 mb-3" style={{ border: '1px solid #E2E8F0', background: '#FAFBFC' }}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: '#0A2342', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{e.week_label}</p>
-                      {e.submitter && <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
-                    </div>
-                  </div>
-                  {ADV_DEPT_KEYS.map(d => {
-                    const m = e.metrics?.[d] || {}
-                    const entries = Object.entries(m)
-                    const advList = e.advocates?.[d] || []
-                    if (!entries.length && !advList.length) return null
-                    return (
-                      <div key={d} className="mb-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: DEPT_COLORS[d] }}>
-                          {ADV_DEPTS[d].label}
-                        </p>
-                        {entries.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-2">
-                            {entries.slice(0, 5).map(([k, v]) => {
-                              const def = ADV_DEPTS[d].metrics.find(x => x.id === k)
-                              return (
-                                <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                                  style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
-                                  {def?.label || k}: <strong>{String(v)}</strong>
-                                </span>
-                              )
-                            })}
-                            {entries.length > 5 && (
-                              <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
-                                +{entries.length - 5} more
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {advList.length > 0 && (
-                          <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${DEPT_BORDER[d]}` }}>
-                            <table className="w-full text-xs border-collapse">
-                              <thead>
-                                <tr style={{ background: DEPT_BG[d] }}>
-                                  {['Advocate','Out','In','Talk time','Tasks'].map(h => (
-                                    <th key={h} className="py-1.5 px-2 text-left font-semibold" style={{ color: DEPT_COLORS[d] }}>{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {advList.map((a: any, i: number) => (
-                                  <tr key={a.name} style={{ background: i % 2 === 0 ? '#fff' : '#F8FAFC', borderTop: `1px solid ${DEPT_BORDER[d]}` }}>
-                                    <td className="py-1.5 px-2 font-semibold" style={{ color: '#334155' }}>{a.name}</td>
-                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.out || '—'}</td>
-                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.in || '—'}</td>
-                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.talk || '—'}</td>
-                                    <td className="py-1.5 px-2" style={{ color: '#475569' }}>{a.tasks || '—'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {e.wins    && <p className="text-xs mt-2" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Wins:</strong> {e.wins}</p>}
-                  {e.blockers && <p className="text-xs mt-1" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Blockers:</strong> {e.blockers}</p>}
-                </div>
-              ))
-            }
+            <HistoryTable entries={advEntries} type="advocate" />
           </Card>
         )}
 
@@ -577,50 +504,7 @@ export default function Home() {
         {tab === 'fitter-history' && (
           <Card>
             <SectionLabel>Fitter check-in history</SectionLabel>
-            {fitterEntries.length === 0
-              ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                  <p className="text-sm font-medium" style={{ color: '#94A3B8' }}>No check-ins saved yet</p>
-                </div>
-              )
-              : [...fitterEntries].reverse().map(e => (
-                <div key={e.id} className="rounded-lg p-4 mb-3" style={{ border: '1px solid #E2E8F0', background: '#FAFBFC' }}>
-                  <p className="text-sm font-bold mb-0.5" style={{ color: '#0A2342', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{e.week_label}</p>
-                  {e.submitter && <p className="text-xs mb-2" style={{ color: '#64748B' }}>{e.submitter}{e.notes_meta ? ` · ${e.notes_meta}` : ''}</p>}
-                  {FITTER_DEPT_KEYS.map(d => {
-                    const m = e.metrics?.[d] || {}
-                    const entries = Object.entries(m)
-                    if (!entries.length) return null
-                    return (
-                      <div key={d} className="mb-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: DEPT_COLORS[d] }}>
-                          {FITTER_DEPTS[d].label}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {entries.slice(0, 5).map(([k, v]) => {
-                            const def = FITTER_DEPTS[d].metrics.find(x => x.id === k)
-                            return (
-                              <span key={k} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                                style={{ background: DEPT_BG[d], color: DEPT_COLORS[d] }}>
-                                {def?.label || k}: <strong>{String(v)}</strong>
-                              </span>
-                            )
-                          })}
-                          {entries.length > 5 && (
-                            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>
-                              +{entries.length - 5} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {e.wins     && <p className="text-xs mt-2" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Wins:</strong> {e.wins}</p>}
-                  {e.blockers && <p className="text-xs mt-1" style={{ color: '#475569' }}><strong style={{ color: '#1E293B' }}>Blockers:</strong> {e.blockers}</p>}
-                </div>
-              ))
-            }
+            <HistoryTable entries={fitterEntries} type="fitter" />
           </Card>
         )}
 
