@@ -285,7 +285,24 @@ export default function Home() {
               <input type="text" placeholder="e.g. Holiday week, team short-staffed…" value={advNotes} onChange={e => setAdvNotes(e.target.value)} />
             </Card>
 
-            {ADV_DEPT_KEYS.map(d => (
+            {/* Dept toggle header */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', alignSelf: 'center', marginRight: 4 }}>Team</span>
+              {ADV_DEPT_KEYS.map(d => (
+                <button key={d} onClick={() => setActiveDept(d)}
+                  style={{
+                    padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    border: `1.5px solid ${activeDept === d ? DEPT_COLORS[d] : '#E2E8F0'}`,
+                    background: activeDept === d ? DEPT_BG[d] : '#F8FAFC',
+                    color: activeDept === d ? DEPT_COLORS[d] : '#64748B',
+                    transition: 'all 0.15s',
+                  }}>
+                  {ADV_DEPTS[d].label}
+                </button>
+              ))}
+            </div>
+
+            {ADV_DEPT_KEYS.filter(d => d === activeDept).map(d => (
               <Card key={d}>
                 <div className="flex items-center gap-2 mb-5">
                   <DeptPill deptKey={d} />

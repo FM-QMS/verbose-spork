@@ -137,10 +137,41 @@ Rules:
 }
 
 export default function InsightsTab() {
-  const [loading, setLoading]   = useState(false)
-  const [report, setReport]     = useState<Report | null>(null)
-  const [error, setError]       = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [report, setReport]         = useState<Report | null>(null)
+  const [error, setError]           = useState('')
   const [activeSection, setActiveSection] = useState<'advocate' | 'fitter'>('advocate')
+  const [snapshots, setSnapshots]   = useState<{id: string; label: string; report: Report}[]>([])
+  const [selectedSnap, setSelectedSnap] = useState<string>('')
+  const [savingSnap, setSavingSnap] = useState(false)
+
+  // Load saved snapshots from Supabase on mount
+  useState(() => {
+    loadSnapshots()
+  })
+
+  async function loadSnapshots() {
+    try {
+      const res = await fetch('/api/insights/snapshots')
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) setSnapshots(data)
+      }
+    } catch {}
+  }
+
+  async function saveSnapshot(r: Report) {
+    setSavingSnap(true)
+    try {
+      await fetch('/api/insights/snapshots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: r.weekLabel, report: r }),
+      })
+      await loadSnapshots()
+    } catch {}
+    setSavingSnap(false)
+  }
 
   async function generate() {
     setLoading(true)
@@ -183,6 +214,8 @@ export default function InsightsTab() {
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed: Report = JSON.parse(clean)
       setReport(parsed)
+      // auto-save snapshot
+      saveSnapshot(parsed)
     } catch (e: any) {
       setError(e.message || 'Something went wrong. Check that ANTHROPIC_API_KEY is set in Vercel environment variables.')
     } finally {
@@ -201,6 +234,34 @@ export default function InsightsTab() {
   return (
     <div>
       {/* generate button */}
+      {/* Snapshot selector */}
+      {snapshots.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>Saved reports</span>
+          <select
+            value={selectedSnap}
+            onChange={e => {
+              setSelectedSnap(e.target.value)
+              if (e.target.value) {
+                const snap = snapshots.find(s => s.id === e.target.value)
+                if (snap) { setReport(snap.report); setError('') }
+              }
+            }}
+            style={{ flex: 1, fontSize: 13, padding: '6px 10px', border: '1.5px solid #E2E8F0', borderRadius: 7, background: '#F8FAFC', color: '#334155', minWidth: 200 }}>
+            <option value="">Select a saved report…</option>
+            {snapshots.map(s => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+          {report && (
+            <button onClick={() => { setReport(null); setSelectedSnap('') }}
+              style={{ fontSize: 12, fontWeight: 600, color: '#64748B', background: 'none', border: '1.5px solid #E2E8F0', borderRadius: 7, padding: '6px 12px', cursor: 'pointer' }}>
+              New report
+            </button>
+          )}
+        </div>
+      )}
+
       {!report && !loading && (
         <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, padding: '2.5rem', textAlign: 'center', marginBottom: 16 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#E3F0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
