@@ -141,17 +141,19 @@ export default function UploadButton({ onUploaded }: Props) {
             if (prevVal !== null && !isNaN(prevVal)) prevMetrics[dKey][colB] = prevVal
           }
 
-          // advocate row: in phone section, col A is name, B/C/D/E are stats
+          // advocate row: in phone section, col A is name, B/C/D/E/F/G are stats
           if (inAdvocates && colA && colA !== 'Advocate' && !colA.toLowerCase().includes('phone')) {
             const dKey = currentDept
             if (!dKey) continue
             if (!advocates[dKey]) advocates[dKey] = []
             advocates[dKey].push({
-              name:  colA,
-              out:   String(rows[r]?.[1] || ''),
-              in:    String(rows[r]?.[2] || ''),
-              talk:  String(rows[r]?.[3] || ''),
-              tasks: String(rows[r]?.[4] || ''),
+              name:         colA,
+              out:          String(rows[r]?.[1] || ''),
+              in:           String(rows[r]?.[2] || ''),
+              talk:         String(rows[r]?.[3] || ''),
+              tasks:        String(rows[r]?.[4] || ''),
+              pagevisits:   String(rows[r]?.[5] || ''),
+              notescreated: String(rows[r]?.[6] || ''),
             })
           }
         }
