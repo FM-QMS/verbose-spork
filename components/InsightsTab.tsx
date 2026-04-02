@@ -131,6 +131,7 @@ Rules:
 - concerns: metrics trending wrong or spiking (top 2-3 per dept)
 - goals: specific numeric targets for next week based on trend trajectory (top 3-4 per dept). For "queue" metrics (unfilled, missing, denied etc) lower is better. For "activity" metrics (welcome calls, new patient leads) higher is better.
 - phoneInsights: only include if phone data exists, flag = "positive" | "watch" | "neutral"
+- IMPORTANT — cleared queue fields: The following metrics being at zero (0) is ALWAYS a positive sign, never a concern. The teams clearing these to zero means they are on top of their work. Do NOT flag these as concerns when they are low or zero: "New Notes", "New Patient Leads", "Portal Updates", "Status Changes", "My Tasks". Only flag them as concerns if they are unusually HIGH and growing.
 - Be specific with numbers. Do not invent data. Only reference metrics that appear in the data.
 - Return ONLY the JSON object, no markdown fences, no preamble.`
 }
