@@ -167,20 +167,23 @@ export default function InsightsTab() {
       const response = await fetch('/api/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
       })
 
+      let respData: any
+      try { respData = await response.json() } catch { throw new Error(`Server error ${response.status} — no JSON returned`) }
+
       if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err?.error || 'API error')
+        throw new Error(respData?.error || `API error ${response.status}`)
       }
 
-      const data = await response.json()
-      const clean = (data.text || '').replace(/```json|```/g, '').trim()
+      // Extract text from Anthropic response content blocks
+      const text = (respData.content || []).map((b: any) => b.text || '').join('')
+      const clean = text.replace(/```json|```/g, '').trim()
       const parsed: Report = JSON.parse(clean)
       setReport(parsed)
     } catch (e: any) {
-      setError(e.message || 'Something went wrong generating the report.')
+      setError(e.message || 'Something went wrong. Check that ANTHROPIC_API_KEY is set in Vercel environment variables.')
     } finally {
       setLoading(false)
     }
