@@ -19,8 +19,6 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'cgm_hospice',     label: 'CGM Reason: Hospice/SNF' },
       { id: 'cgm_status',      label: 'Status Changes' },
       { id: 'cgm_ship',        label: 'Scheduled to Ship — Attention Needed' },
-      { id: 'cgm_pagevisits',   label: '# of Page Visits',                   dir: 'up' },
-      { id: 'cgm_notescreated', label: '# of Notes Created',                 dir: 'up' },
     ],
     advocates: [
       { name: 'America',  initials: 'AM' },
@@ -38,8 +36,6 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'shoe_surveyneed',      label: 'Shoe Survey Needed' },
       { id: 'shoe_voicemail',       label: 'Voicemails' },
       { id: 'shoe_missinginoffice', label: 'Missing Info In-Office' },
-      { id: 'shoe_pagevisits',   label: '# of Page Visits',   dir: 'up' },
-      { id: 'shoe_notescreated', label: '# of Notes Created', dir: 'up' },
     ],
     advocates: [
       { name: 'Gisel',    initials: 'GI' },
@@ -56,8 +52,6 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'chase_rxnopfp',   label: 'Unfilled RX (No PFP)' },
       { id: 'chase_domulti',   label: 'Unfilled DO Multi Product' },
       { id: 'chase_priorauth', label: 'Prior Auth Medical Records' },
-      { id: 'chase_pagevisits',   label: '# of Page Visits',   dir: 'up' },
-      { id: 'chase_notescreated', label: '# of Notes Created', dir: 'up' },
     ],
     advocates: [
       { name: 'Julie',  initials: 'JU' },

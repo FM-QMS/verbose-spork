@@ -237,8 +237,17 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
     return () => { chartRef.current?.destroy(); chartRef.current = null }
   }, [entries, active, activeAdv, deptKey, metrics, view, phoneMetric, advocates, normalized])
 
+  // Find most recent entry that actually has phone data for this dept
+  const latestWithPhone = [...entries].reverse().find(e => {
+    const advList = e.advocates?.[deptKey] || []
+    return advList.some((a: any) => a.out || a.in || a.talk)
+  })
   const latest = entries[entries.length - 1]
   const prev   = entries.length > 1 ? entries[entries.length - 2] : null
+  // For phone table, use the most recent entry with actual data
+  const phoneLatest = latestWithPhone || latest
+  const phoneLatestIdx = latestWithPhone ? entries.indexOf(latestWithPhone) : entries.length - 1
+  const phonePrev = phoneLatestIdx > 0 ? entries[phoneLatestIdx - 1] : null
 
   const filterItems = view === 'metrics'
     ? metrics.map(m => ({ id: m.id, label: m.label, checked: active.has(m.id) }))
@@ -433,20 +442,30 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
       {/* phone snapshot */}
       {view === 'phone' && latest && advocates.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', marginBottom: 10 }}>Latest week — phone activity</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', margin: 0 }}>Phone activity</p>
+          {phoneLatest && (
+            <span style={{ fontSize: 11, color: '#94A3B8' }}>
+              — {phoneLatest.week_label || phoneLatest.week_date}
+              {phoneLatest.week_date !== latest?.week_date && (
+                <span style={{ color: '#E65100', marginLeft: 4 }}>(most recent data available)</span>
+              )}
+            </span>
+          )}
+        </div>
           <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E2E8F0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#F0F6FF', borderBottom: '1.5px solid #E2E8F0' }}>
-                  {['Advocate','Outbound','Inbound','Talk time','Tasks open'].map(h => (
+                  {['Advocate','Outbound','Inbound','Talk time','Tasks open','Page Visits','Notes Created'].map(h => (
                     <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: accentColor }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {advocates.filter(a => activeAdv.has(a.name)).map((a, i) => {
-                  const cur  = (latest.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
-                  const prv  = (prev?.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
+                  const cur  = (phoneLatest.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
+                  const prv  = (phonePrev?.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
                   const delta = (field: 'out'|'in') => {
                     if (!cur || !prv) return null
                     const c = parseInt((cur as any)[field]) || 0, p = parseInt((prv as any)[field]) || 0
@@ -472,6 +491,8 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
                       </td>
                       <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{cur?.talk || '—'}</td>
                       <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{cur?.tasks || '—'}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{(cur as any)?.pagevisits || '—'}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{(cur as any)?.notescreated || '—'}</td>
                     </tr>
                   )
                 })}

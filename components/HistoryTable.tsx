@@ -247,7 +247,7 @@ export default function HistoryTable({ entries, type }: Props) {
                         {chrono.map((e, wi) => {
                           const advList = e.advocates?.[activeDept] || []
                           const advEntry = advList.find((x: any) => x.name === adv.name)
-                          const fieldKey = field === 'Outbound' ? 'out' : field === 'Inbound' ? 'in' : 'talk'
+                          const fieldKey = field === 'Outbound' ? 'out' : field === 'Inbound' ? 'in' : field === 'Talk time' ? 'talk' : field === 'Page Visits' ? 'pagevisits' : 'notescreated'
                           const v = advEntry ? (advEntry as any)[fieldKey] : null
                           const isLatest = wi === chrono.length - 1
                           return (

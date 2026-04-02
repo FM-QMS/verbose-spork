@@ -330,7 +330,7 @@ export default function Home() {
                             style={{ background: DEPT_COLORS[d], color: 'white' }}>{a.initials}</div>
                           <span className="text-sm font-semibold" style={{ color: '#1E293B' }}>{a.name}</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 8 }}>
                           {(['out','in','talk','tasks'] as const).map((field, fi) => (
                             <div key={field}>
                               <FieldLabel>{['Outbound','Inbound','Talk time','Tasks open'][fi]}</FieldLabel>
@@ -338,6 +338,20 @@ export default function Home() {
                                 type={field === 'talk' ? 'text' : 'number'}
                                 min="0"
                                 placeholder={field === 'talk' ? '2:45' : '0'}
+                                value={av[field] || ''}
+                                onChange={e => setAdvocateVal(d, i, field, e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['pagevisits','notescreated'] as const).map((field, fi) => (
+                            <div key={field}>
+                              <FieldLabel>{['# of Page Visits','# of Notes Created'][fi]}</FieldLabel>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
                                 value={av[field] || ''}
                                 onChange={e => setAdvocateVal(d, i, field, e.target.value)}
                               />
