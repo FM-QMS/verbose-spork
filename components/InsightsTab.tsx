@@ -164,24 +164,19 @@ export default function InsightsTab() {
 
       const prompt = buildPrompt(advEntries, fitEntries)
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+        body: JSON.stringify({ prompt }),
       })
 
       if (!response.ok) {
         const err = await response.json()
-        throw new Error(err?.error?.message || 'API error')
+        throw new Error(err?.error || 'API error')
       }
 
       const data = await response.json()
-      const text = data.content?.map((c: any) => c.text || '').join('') || ''
-      const clean = text.replace(/```json|```/g, '').trim()
+      const clean = (data.text || '').replace(/```json|```/g, '').trim()
       const parsed: Report = JSON.parse(clean)
       setReport(parsed)
     } catch (e: any) {
