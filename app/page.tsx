@@ -93,6 +93,7 @@ function SaveButton({ onClick, saving }: { onClick: () => void; saving: boolean 
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
   const [tab, setTab]           = useState<TabId>('adv-form')
+  const [activeDept, setActiveDept] = useState<string>('cgm')
   const [saving, setSaving]     = useState(false)
   const [saveMsg, setSaveMsg]   = useState('')
   const [advEntries,    setAdvEntries]    = useState<any[]>([])
