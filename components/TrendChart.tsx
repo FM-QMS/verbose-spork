@@ -204,7 +204,7 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
         },
         scales: {
           x: {
-            grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+            grid: { color: 'rgba(0,0,0,0.04)' },
             ticks: {
               font: { size: 11, family: 'Inter' },
               color: '#94A3B8',
@@ -213,7 +213,7 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
             border: { display: false },
           },
           y: {
-            grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+            grid: { color: 'rgba(0,0,0,0.04)' },
             ticks: {
               font: { size: 11, family: 'Inter' },
               color: '#94A3B8',
