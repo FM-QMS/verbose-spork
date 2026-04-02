@@ -146,9 +146,9 @@ export default function InsightsTab() {
   const [savingSnap, setSavingSnap] = useState(false)
 
   // Load saved snapshots from Supabase on mount
-  useState(() => {
+  useEffect(() => {
     loadSnapshots()
-  })
+  }, [])
 
   async function loadSnapshots() {
     try {
@@ -241,10 +241,18 @@ export default function InsightsTab() {
           <select
             value={selectedSnap}
             onChange={e => {
-              setSelectedSnap(e.target.value)
-              if (e.target.value) {
-                const snap = snapshots.find(s => s.id === e.target.value)
-                if (snap) { setReport(snap.report); setError('') }
+              const id = e.target.value
+              setSelectedSnap(id)
+              setError('')
+              if (id) {
+                const snap = snapshots.find((s: any) => s.id === id)
+                if (snap?.report) {
+                  setReport(snap.report)
+                } else {
+                  setError('Could not load saved report — data may be missing.')
+                }
+              } else {
+                setReport(null)
               }
             }}
             style={{ flex: 1, fontSize: 13, padding: '6px 10px', border: '1.5px solid #E2E8F0', borderRadius: 7, background: '#F8FAFC', color: '#334155', minWidth: 200 }}>

@@ -13,7 +13,7 @@ export async function GET() {
     const supabase = getSupabase()
     const { data, error } = await supabase
       .from('insight_snapshots')
-      .select('id, label, created_at')
+      .select('id, label, report, created_at')
       .order('created_at', { ascending: false })
       .limit(20)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
