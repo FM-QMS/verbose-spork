@@ -287,24 +287,57 @@ export default function Home() {
           </div>
         </div>
 
-        {/* tabs */}
+        {/* nav */}
         <div className="max-w-4xl mx-auto px-6">
-          <div className="flex gap-1 overflow-x-auto pb-0">
-            {TAB_GROUPS.map(group => (
-              <div key={group.label} className="flex items-center gap-0.5 mr-4">
-                <span className="text-xs mr-2" style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{group.label}</span>
-                {group.tabs.map(t => (
-                  <button key={t.id} onClick={() => setTab(t.id)}
-                    className="px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-all rounded-t-lg"
-                    style={tab === t.id
-                      ? { background: '#EEF2F7', color: '#0A2342', fontWeight: 600 }
-                      : { color: 'rgba(255,255,255,0.7)', background: 'transparent' }
-                    }>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: 0, overflowX: 'auto', alignItems: 'stretch' }}>
+            {TAB_GROUPS.map((group, gi) => {
+              const groupActive = group.tabs.some(t => t.id === tab)
+              const isSingle    = group.tabs.length === 1
+              return (
+                <div key={group.label} style={{ display: 'flex', flexDirection: 'column', marginRight: gi < TAB_GROUPS.length - 1 ? 2 : 0 }}>
+                  {/* section label */}
+                  <div style={{
+                    padding: '6px 14px 4px',
+                    fontSize: 9,
+                    fontWeight: 800,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: groupActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+                    textAlign: 'center',
+                    borderBottom: `2px solid ${groupActive ? 'rgba(255,255,255,0.5)' : 'transparent'}`,
+                    transition: 'all 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {group.label}
+                  </div>
+                  {/* sub-tabs */}
+                  <div style={{ display: 'flex', flex: 1, alignItems: 'flex-end' }}>
+                    {group.tabs.map(t => {
+                      const isActive = tab === t.id
+                      return (
+                        <button key={t.id} onClick={() => setTab(t.id)}
+                          style={{
+                            padding: isSingle ? '8px 20px' : '8px 14px',
+                            fontSize: 13,
+                            fontWeight: isActive ? 700 : 500,
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            border: 'none',
+                            outline: 'none',
+                            transition: 'all 0.15s',
+                            borderRadius: '6px 6px 0 0',
+                            background: isActive ? '#EEF2F7' : 'transparent',
+                            color: isActive ? '#0A2342' : 'rgba(255,255,255,0.75)',
+                            boxShadow: isActive ? '0 -1px 0 rgba(255,255,255,0.2)' : 'none',
+                          }}>
+                          {t.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
