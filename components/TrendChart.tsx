@@ -479,8 +479,9 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
                     for (let ei = limit - 1; ei >= 0; ei--) {
                       const advList = entries[ei].advocates?.[deptKey] || []
                       const adv = advList.find((x: any) => x.name === a.name)
-                      if (adv && adv[field] !== '' && adv[field] !== null && adv[field] !== undefined) {
-                        return { value: adv[field], entryIdx: ei }
+                      const advAny = adv as any
+                      if (advAny && advAny[field] !== '' && advAny[field] !== null && advAny[field] !== undefined) {
+                        return { value: advAny[field], entryIdx: ei }
                       }
                     }
                     return { value: null, entryIdx: -1 }
