@@ -90,6 +90,64 @@ function SaveButton({ onClick, saving }: { onClick: () => void; saving: boolean 
   )
 }
 
+function dedupeWeeklyEntries(raw: any[]): any[] {
+  const byWeek: Record<string, any> = {}
+  for (const e of raw) {
+    const d = new Date(e.week_date + 'T12:00:00')
+    const day = d.getDay()
+    const mon = new Date(d)
+    mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+    const key = mon.toISOString().slice(0, 10)
+
+    if (!byWeek[key]) {
+      byWeek[key] = { ...e, week_date: key }
+    } else {
+      const existing = byWeek[key]
+
+      // Merge metrics — combine all dept metric objects
+      const mergedMetrics: any = {}
+      for (const dk of new Set([...Object.keys(existing.metrics || {}), ...Object.keys(e.metrics || {})])) {
+        mergedMetrics[dk] = { ...(existing.metrics?.[dk] || {}), ...(e.metrics?.[dk] || {}) }
+      }
+
+      // Merge advocates — combine per-dept lists field by field per advocate
+      const mergedAdvocates: any = {}
+      const allDepts = new Set([...Object.keys(existing.advocates || {}), ...Object.keys(e.advocates || {})])
+      for (const dk of allDepts) {
+        const exList: any[] = existing.advocates?.[dk] || []
+        const inList: any[] = e.advocates?.[dk] || []
+        const merged = exList.map((ex: any) => {
+          const incoming = inList.find((x: any) => x.name?.toLowerCase() === ex.name?.toLowerCase())
+          if (!incoming) return ex
+          // Merge: non-empty incoming values win
+          const result: any = { ...ex }
+          for (const [k, v] of Object.entries(incoming)) {
+            if (v !== '' && v !== null && v !== undefined) result[k] = v
+          }
+          return result
+        })
+        // Add any advocates from inList not already in exList
+        for (const inAdv of inList) {
+          if (!merged.find((x: any) => x.name?.toLowerCase() === inAdv.name?.toLowerCase())) {
+            merged.push(inAdv)
+          }
+        }
+        mergedAdvocates[dk] = merged
+      }
+
+      const cleanSub = (s: any) => (s && typeof s === 'string' && !s.startsWith('{') && !s.startsWith('[')) ? s : ''
+      byWeek[key] = {
+        ...existing,
+        metrics:    mergedMetrics,
+        advocates:  mergedAdvocates,
+        week_label: existing.week_label || e.week_label,
+        submitter:  cleanSub(existing.submitter) || cleanSub(e.submitter),
+      }
+    }
+  }
+  return Object.values(byWeek).sort((a: any, b: any) => a.week_date.localeCompare(b.week_date))
+}
+
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
   const [tab, setTab]           = useState<TabId>('adv-form')
@@ -118,48 +176,11 @@ export default function Home() {
   const [fitMetrics, setFitMetrics]     = useState<Record<string, Record<string, string>>>({})
   const [fitPrev, setFitPrev]           = useState<Record<string, Record<string, string>>>({})
 
-  function dedupeEntries(raw: any[]): any[] {
-    const byWeek: Record<string, any> = {}
-    for (const e of raw) {
-      const d = new Date(e.week_date + 'T12:00:00')
-      const day = d.getDay()
-      const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
-      const key = mon.toISOString().slice(0, 10)
-      if (!byWeek[key]) {
-        byWeek[key] = { ...e, week_date: key }
-      } else {
-        const existing = byWeek[key]
-        const mergedMetrics: any = { ...existing.metrics }
-        for (const dk of Object.keys(e.metrics || {})) {
-          mergedMetrics[dk] = { ...(mergedMetrics[dk] || {}), ...(e.metrics[dk] || {}) }
-        }
-        const mergedAdvocates: any = { ...(existing.advocates || {}) }
-        for (const dk of Object.keys(e.advocates || {})) {
-          const inList: any[] = (e.advocates || {})[dk] || []
-          const exList: any[] = mergedAdvocates[dk] || []
-          const merged = [...exList]
-          for (const inAdv of inList) {
-            const idx = merged.findIndex((x: any) => x.name?.toLowerCase() === inAdv.name?.toLowerCase())
-            if (idx >= 0) {
-              merged[idx] = { ...merged[idx], ...Object.fromEntries(Object.entries(inAdv).filter(([, v]) => v !== '' && v !== null && v !== undefined)) }
-            } else { merged.push(inAdv) }
-          }
-          mergedAdvocates[dk] = merged
-        }
-        const cleanSubmitter = (s: string) => s && !s.startsWith('{') && !s.startsWith('[') ? s : ''
-        byWeek[key] = { ...existing, metrics: mergedMetrics, advocates: mergedAdvocates,
-          week_label: existing.week_label || e.week_label,
-          submitter: cleanSubmitter(existing.submitter || '') || cleanSubmitter(e.submitter || '') }
-      }
-    }
-    return Object.values(byWeek).sort((a: any, b: any) => a.week_date.localeCompare(b.week_date))
-  }
-
   const loadEntries = useCallback(async (type: 'advocate' | 'fitter') => {
     const res  = await fetch(`/api/checkins?type=${type}`)
     const data = await res.json()
     if (Array.isArray(data)) {
-      const deduped = dedupeEntries(data)
+      const deduped = dedupeWeeklyEntries(data)
       type === 'advocate' ? setAdvEntries(deduped) : setFitterEntries(deduped)
     }
   }, [])

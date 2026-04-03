@@ -114,8 +114,8 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
           borderColor: ds.color,
           backgroundColor: ds.color + '15',
           tension: 0.35,
-          pointRadius: entries.length <= 6 ? 5 : 3,
-          pointHoverRadius: 8,
+          pointRadius: 4,
+          pointHoverRadius: 7,
           borderWidth: 2,
           spanGaps: true,
           fill: false,
@@ -127,8 +127,8 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
           borderColor: ds.color,
           backgroundColor: ds.color + '15',
           tension: 0.35,
-          pointRadius: entries.length <= 6 ? 5 : 3,
-          pointHoverRadius: 8,
+          pointRadius: 4,
+          pointHoverRadius: 7,
           borderWidth: 2,
           spanGaps: true,
           fill: false,
@@ -147,7 +147,7 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
           return null
         })
         return { label: a.name, data, borderColor: color, backgroundColor: color + '25',
-          tension: 0.35, pointRadius: entries.length <= 6 ? 5 : 3, pointHoverRadius: 8,
+          tension: 0.35, pointRadius: 4, pointHoverRadius: 7,
           borderWidth: 2, spanGaps: true, fill: false }
       })
     }
