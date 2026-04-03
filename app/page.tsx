@@ -293,48 +293,62 @@ export default function Home() {
             {TAB_GROUPS.map((group, gi) => {
               const groupActive = group.tabs.some(t => t.id === tab)
               const isSingle    = group.tabs.length === 1
+              const isLast      = gi === TAB_GROUPS.length - 1
               return (
-                <div key={group.label} style={{ display: 'flex', flexDirection: 'column', marginRight: gi < TAB_GROUPS.length - 1 ? 2 : 0 }}>
-                  {/* section label */}
-                  <div style={{
-                    padding: '6px 14px 4px',
-                    fontSize: 9,
-                    fontWeight: 800,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: groupActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
-                    textAlign: 'center',
-                    borderBottom: `2px solid ${groupActive ? 'rgba(255,255,255,0.5)' : 'transparent'}`,
-                    transition: 'all 0.15s',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {group.label}
+                <div key={group.label} style={{ display: 'flex', alignItems: 'stretch' }}>
+                  {/* section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: gi === 0 ? 0 : 20, paddingRight: isLast ? 0 : 20 }}>
+                    {/* section label */}
+                    <div style={{
+                      padding: '7px 2px 5px',
+                      fontSize: 9,
+                      fontWeight: 800,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: groupActive ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.38)',
+                      textAlign: 'center',
+                      borderBottom: `2px solid ${groupActive ? 'rgba(255,255,255,0.6)' : 'transparent'}`,
+                      marginBottom: 2,
+                      transition: 'all 0.15s',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {group.label}
+                    </div>
+                    {/* sub-tabs */}
+                    <div style={{ display: 'flex', flex: 1, alignItems: 'flex-end' }}>
+                      {group.tabs.map(t => {
+                        const isActive = tab === t.id
+                        return (
+                          <button key={t.id} onClick={() => setTab(t.id)}
+                            style={{
+                              padding: isSingle ? '8px 18px' : '8px 14px',
+                              fontSize: 13,
+                              fontWeight: isActive ? 700 : 500,
+                              whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                              border: 'none',
+                              outline: 'none',
+                              transition: 'all 0.15s',
+                              borderRadius: '6px 6px 0 0',
+                              background: isActive ? '#EEF2F7' : 'transparent',
+                              color: isActive ? '#0A2342' : 'rgba(255,255,255,0.75)',
+                            }}>
+                            {t.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                  {/* sub-tabs */}
-                  <div style={{ display: 'flex', flex: 1, alignItems: 'flex-end' }}>
-                    {group.tabs.map(t => {
-                      const isActive = tab === t.id
-                      return (
-                        <button key={t.id} onClick={() => setTab(t.id)}
-                          style={{
-                            padding: isSingle ? '8px 20px' : '8px 14px',
-                            fontSize: 13,
-                            fontWeight: isActive ? 700 : 500,
-                            whiteSpace: 'nowrap',
-                            cursor: 'pointer',
-                            border: 'none',
-                            outline: 'none',
-                            transition: 'all 0.15s',
-                            borderRadius: '6px 6px 0 0',
-                            background: isActive ? '#EEF2F7' : 'transparent',
-                            color: isActive ? '#0A2342' : 'rgba(255,255,255,0.75)',
-                            boxShadow: isActive ? '0 -1px 0 rgba(255,255,255,0.2)' : 'none',
-                          }}>
-                          {t.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {/* divider between sections */}
+                  {!isLast && (
+                    <div style={{
+                      width: 1,
+                      margin: '8px 0 0',
+                      alignSelf: 'stretch',
+                      background: 'rgba(255,255,255,0.15)',
+                      flexShrink: 0,
+                    }} />
+                  )}
                 </div>
               )
             })}
