@@ -106,13 +106,13 @@ function dedupeWeeklyEntries(raw: any[]): any[] {
 
       // Merge metrics — combine all dept metric objects
       const mergedMetrics: any = {}
-      for (const dk of new Set([...Object.keys(existing.metrics || {}), ...Object.keys(e.metrics || {})])) {
+      for (const dk of Array.from(new Set([...Object.keys(existing.metrics || {}), ...Object.keys(e.metrics || {})]))) {
         mergedMetrics[dk] = { ...(existing.metrics?.[dk] || {}), ...(e.metrics?.[dk] || {}) }
       }
 
       // Merge advocates — combine per-dept lists field by field per advocate
       const mergedAdvocates: any = {}
-      const allDepts = new Set([...Object.keys(existing.advocates || {}), ...Object.keys(e.advocates || {})])
+      const allDepts = Array.from(new Set([...Object.keys(existing.advocates || {}), ...Object.keys(e.advocates || {})]))
       for (const dk of allDepts) {
         const exList: any[] = existing.advocates?.[dk] || []
         const inList: any[] = e.advocates?.[dk] || []
