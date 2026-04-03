@@ -237,17 +237,26 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
     return () => { chartRef.current?.destroy(); chartRef.current = null }
   }, [entries, active, activeAdv, deptKey, metrics, view, phoneMetric, advocates, normalized])
 
-  // Find most recent entry that actually has phone data for this dept
+  const latest = entries[entries.length - 1]
+  const prev   = entries.length > 1 ? entries[entries.length - 2] : null
+
+  // Find most recent entry with phone data (outbound/inbound/talk)
   const latestWithPhone = [...entries].reverse().find(e => {
     const advList = e.advocates?.[deptKey] || []
     return advList.some((a: any) => a.out || a.in || a.talk)
   })
-  const latest = entries[entries.length - 1]
-  const prev   = entries.length > 1 ? entries[entries.length - 2] : null
-  // For phone table, use the most recent entry with actual data
   const phoneLatest = latestWithPhone || latest
   const phoneLatestIdx = latestWithPhone ? entries.indexOf(latestWithPhone) : entries.length - 1
   const phonePrev = phoneLatestIdx > 0 ? entries[phoneLatestIdx - 1] : null
+
+  // Find most recent entry with pagevisits/notescreated data (may be a different week)
+  const latestWithPV = [...entries].reverse().find(e => {
+    const advList = e.advocates?.[deptKey] || []
+    return advList.some((a: any) => a.pagevisits || a.notescreated)
+  })
+  const pvLatest = latestWithPV || phoneLatest
+  const pvLatestIdx = latestWithPV ? entries.indexOf(latestWithPV) : phoneLatestIdx
+  const pvPrev = pvLatestIdx > 0 ? entries[pvLatestIdx - 1] : null
 
   const filterItems = view === 'metrics'
     ? metrics.map(m => ({ id: m.id, label: m.label, checked: active.has(m.id) }))
@@ -464,15 +473,59 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
               </thead>
               <tbody>
                 {advocates.filter(a => activeAdv.has(a.name)).map((a, i) => {
-                  const cur  = (phoneLatest.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
-                  const prv  = (phonePrev?.advocates?.[deptKey] || []).find((x: any) => x.name === a.name)
-                  const delta = (field: 'out'|'in') => {
-                    if (!cur || !prv) return null
-                    const c = parseInt((cur as any)[field]) || 0, p = parseInt((prv as any)[field]) || 0
-                    if (p === 0) return null
-                    const diff = c - p, sign = diff > 0 ? '+' : ''
-                    return { label: `${sign}${diff}`, color: diff > 0 ? '#2E7D32' : diff < 0 ? '#C62828' : '#64748B' }
+                  // For each field, find the most recent entry that has a value for this advocate
+                  const getLatestField = (field: string, afterIdx?: number) => {
+                    const limit = afterIdx !== undefined ? afterIdx : entries.length
+                    for (let ei = limit - 1; ei >= 0; ei--) {
+                      const advList = entries[ei].advocates?.[deptKey] || []
+                      const adv = advList.find((x: any) => x.name === a.name)
+                      if (adv && adv[field] !== '' && adv[field] !== null && adv[field] !== undefined) {
+                        return { value: adv[field], entryIdx: ei }
+                      }
+                    }
+                    return { value: null, entryIdx: -1 }
                   }
+
+                  const outData  = getLatestField('out')
+                  const inData   = getLatestField('in')
+                  const talkData = getLatestField('talk')
+                  const pvData   = getLatestField('pagevisits')
+                  const ncData   = getLatestField('notescreated')
+
+                  const getPrev = (field: string, curIdx: number) => {
+                    if (curIdx <= 0) return null
+                    return getLatestField(field, curIdx).value
+                  }
+
+                  const numDelta = (curVal: any, prvVal: any, higherIsBetter = true) => {
+                    const cv = parseFloat(String(curVal).replace(/[^\d.]/g, '')) || 0
+                    const pv = parseFloat(String(prvVal).replace(/[^\d.]/g, '')) || 0
+                    if (!curVal || !prvVal || pv === 0) return null
+                    const diff = cv - pv
+                    const pct  = Math.round((diff / pv) * 100)
+                    const sign = diff > 0 ? '+' : ''
+                    const improving = higherIsBetter ? diff > 0 : diff < 0
+                    return {
+                      label: `${sign}${pct}%`,
+                      color: diff === 0 ? '#94A3B8' : improving ? '#2E7D32' : '#C62828',
+                      bg:    diff === 0 ? 'transparent' : improving ? '#F0FDF4' : '#FFF5F5',
+                    }
+                  }
+
+                  const Cell = ({ val, prev, higherIsBetter = true }: { val: any, prev: any, higherIsBetter?: boolean }) => {
+                    const d = numDelta(val, prev, higherIsBetter)
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <span style={{ fontWeight: 700, color: val ? '#0A2342' : '#CBD5E1', fontSize: 13 }}>{val || '—'}</span>
+                        {d && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: d.color, background: d.bg, padding: '1px 5px', borderRadius: 4 }}>
+                            {d.label}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  }
+
                   return (
                     <tr key={a.name} style={{ background: i % 2 === 0 ? '#fff' : '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '8px 12px' }}>
@@ -481,18 +534,12 @@ export default function TrendChart({ deptKey, metrics, entries, accentColor, adv
                           <span style={{ fontWeight: 600, color: '#334155' }}>{a.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <span style={{ fontWeight: 700, color: '#0A2342' }}>{cur?.out || '—'}</span>
-                        {delta('out') && <span style={{ fontSize: 10, marginLeft: 6, fontWeight: 600, color: delta('out')!.color }}>{delta('out')!.label}</span>}
-                      </td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <span style={{ fontWeight: 700, color: '#0A2342' }}>{cur?.in || '—'}</span>
-                        {delta('in') && <span style={{ fontSize: 10, marginLeft: 6, fontWeight: 600, color: delta('in')!.color }}>{delta('in')!.label}</span>}
-                      </td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{cur?.talk || '—'}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{cur?.tasks || '—'}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{(cur as any)?.pagevisits || '—'}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0A2342' }}>{(cur as any)?.notescreated || '—'}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}><Cell val={outData.value} prev={getPrev('out', outData.entryIdx)} /></td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}><Cell val={inData.value} prev={getPrev('in', inData.entryIdx)} /></td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}><Cell val={talkData.value} prev={getPrev('talk', talkData.entryIdx)} higherIsBetter={false} /></td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, color: '#CBD5E1', fontSize: 13 }}>—</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}><Cell val={pvData.value} prev={getPrev('pagevisits', pvData.entryIdx)} /></td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}><Cell val={ncData.value} prev={getPrev('notescreated', ncData.entryIdx)} /></td>
                     </tr>
                   )
                 })}
