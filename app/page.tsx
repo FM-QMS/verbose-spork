@@ -118,11 +118,49 @@ export default function Home() {
   const [fitMetrics, setFitMetrics]     = useState<Record<string, Record<string, string>>>({})
   const [fitPrev, setFitPrev]           = useState<Record<string, Record<string, string>>>({})
 
+  function dedupeEntries(raw: any[]): any[] {
+    const byWeek: Record<string, any> = {}
+    for (const e of raw) {
+      const d = new Date(e.week_date + 'T12:00:00')
+      const day = d.getDay()
+      const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+      const key = mon.toISOString().slice(0, 10)
+      if (!byWeek[key]) {
+        byWeek[key] = { ...e, week_date: key }
+      } else {
+        const existing = byWeek[key]
+        const mergedMetrics: any = { ...existing.metrics }
+        for (const dk of Object.keys(e.metrics || {})) {
+          mergedMetrics[dk] = { ...(mergedMetrics[dk] || {}), ...(e.metrics[dk] || {}) }
+        }
+        const mergedAdvocates: any = { ...(existing.advocates || {}) }
+        for (const dk of Object.keys(e.advocates || {})) {
+          const inList: any[] = (e.advocates || {})[dk] || []
+          const exList: any[] = mergedAdvocates[dk] || []
+          const merged = [...exList]
+          for (const inAdv of inList) {
+            const idx = merged.findIndex((x: any) => x.name?.toLowerCase() === inAdv.name?.toLowerCase())
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...Object.fromEntries(Object.entries(inAdv).filter(([, v]) => v !== '' && v !== null && v !== undefined)) }
+            } else { merged.push(inAdv) }
+          }
+          mergedAdvocates[dk] = merged
+        }
+        const cleanSubmitter = (s: string) => s && !s.startsWith('{') && !s.startsWith('[') ? s : ''
+        byWeek[key] = { ...existing, metrics: mergedMetrics, advocates: mergedAdvocates,
+          week_label: existing.week_label || e.week_label,
+          submitter: cleanSubmitter(existing.submitter || '') || cleanSubmitter(e.submitter || '') }
+      }
+    }
+    return Object.values(byWeek).sort((a: any, b: any) => a.week_date.localeCompare(b.week_date))
+  }
+
   const loadEntries = useCallback(async (type: 'advocate' | 'fitter') => {
     const res  = await fetch(`/api/checkins?type=${type}`)
     const data = await res.json()
     if (Array.isArray(data)) {
-      type === 'advocate' ? setAdvEntries(data) : setFitterEntries(data)
+      const deduped = dedupeEntries(data)
+      type === 'advocate' ? setAdvEntries(deduped) : setFitterEntries(deduped)
     }
   }, [])
 

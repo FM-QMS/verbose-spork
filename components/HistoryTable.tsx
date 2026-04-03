@@ -167,7 +167,7 @@ export default function HistoryTable({ entries, type }: Props) {
                       <div style={{ fontSize: 12, fontWeight: 700, color: isLatest ? DEPT_COLORS[activeDept] : '#334155' }}>
                         {shortDate(e.week_date)}
                       </div>
-                      {e.submitter && (
+                      {e.submitter && !e.submitter.startsWith('{') && !e.submitter.startsWith('[') && (
                         <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{e.submitter}</div>
                       )}
                       {isLatest && (

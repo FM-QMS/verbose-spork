@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       type:       body.type,
       week_date:  body.week_date,
       week_label: body.week_label,
-      submitter:  body.submitter  || existing?.advocates,
+      submitter:  body.submitter  || existing?.submitter || '',
       notes_meta: body.notes_meta,
       metrics:    mergedMetrics,
       advocates:  mergedAdvocates,
