@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Check if a record already exists for this type + week_date
     const { data: existing } = await supabase
       .from('checkins')
-      .select('id, advocates, metrics')
+      .select('id, advocates, metrics, submitter')
       .eq('type', body.type)
       .eq('week_date', body.week_date)
       .maybeSingle()
