@@ -268,34 +268,43 @@ export default function HistoryTable({ entries, type }: Props) {
         </div>
       )}
 
-      {/* narrative section */}
-      {chrono.some(e => e.wins || e.blockers || e.focus || (e as any).discussion) && (
-        <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', marginBottom: 10 }}>Weekly narratives</p>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(chrono.length, 3)}, minmax(0,1fr))`, gap: 10 }}>
+      {/* narrative section — always shown */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', margin: 0 }}>Weekly narratives</p>
+          <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+          <span style={{ fontSize: 11, color: '#94A3B8' }}>{chrono.filter(e => e.wins || e.blockers || e.focus || (e as any).discussion).length} of {chrono.length} weeks have notes</span>
+        </div>
+        {chrono.every(e => !e.wins && !e.blockers && !e.focus && !(e as any).discussion) ? (
+          <div style={{ background: '#F8FAFC', border: '1.5px dashed #E2E8F0', borderRadius: 8, padding: '24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#94A3B8', margin: 0 }}>No narrative notes for the selected weeks.</p>
+            <p style={{ fontSize: 12, color: '#CBD5E1', marginTop: 4 }}>Fill in Wins, Blockers, Priorities, or Topics for Discussion when submitting a check-in.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(chrono.filter(e => e.wins || e.blockers || e.focus || (e as any).discussion).length, 3)}, minmax(0,1fr))`, gap: 10 }}>
             {chrono.filter(e => e.wins || e.blockers || e.focus || (e as any).discussion).map(e => (
-              <div key={e.week_date} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 14px' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#0A2342', marginBottom: 10, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{shortDate(e.week_date)}</p>
+              <div key={e.week_date} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#0A2342', marginBottom: 12, fontFamily: 'Plus Jakarta Sans, sans-serif', borderBottom: '1px solid #F1F5F9', paddingBottom: 8 }}>{e.week_label || shortDate(e.week_date)}</p>
                 {([
-                  { key: 'wins',       label: 'Wins & progress',     color: '#2E7D32', bg: '#F0FDF4' },
-                  { key: 'blockers',   label: 'Blockers & risks',    color: '#C62828', bg: '#FFF5F5' },
-                  { key: 'focus',      label: 'Top priorities',      color: '#1565C0', bg: '#F0F6FF' },
-                  { key: 'discussion', label: 'Topics for discussion',color: '#6A1B9A', bg: '#F5F0FF' },
-                ] as {key: string; label: string; color: string; bg: string}[]).map(({ key, label, color, bg }) => {
+                  { key: 'wins',       label: '🏆 Wins & progress',      color: '#166534', bg: '#F0FDF4', border: '#BBF7D0' },
+                  { key: 'blockers',   label: '⚠ Blockers & risks',      color: '#991B1B', bg: '#FFF5F5', border: '#FED7D7' },
+                  { key: 'focus',      label: '🎯 Top priorities',        color: '#1E40AF', bg: '#EFF6FF', border: '#BFDBFE' },
+                  { key: 'discussion', label: '💬 Topics for discussion', color: '#6B21A8', bg: '#FAF5FF', border: '#E9D5FF' },
+                ] as {key: string; label: string; color: string; bg: string; border: string}[]).map(({ key, label, color, bg, border }) => {
                   const val = (e as any)[key]
                   if (!val) return null
                   return (
-                    <div key={key} style={{ marginBottom: 8, background: bg, borderRadius: 6, padding: '8px 10px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
-                      <p style={{ fontSize: 12, color: '#475569', marginTop: 3, lineHeight: 1.55 }}>{val}</p>
+                    <div key={key} style={{ marginBottom: 8, background: bg, border: `1px solid ${border}`, borderRadius: 7, padding: '9px 11px' }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</p>
+                      <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, margin: 0 }}>{val}</p>
                     </div>
                   )
                 })}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
