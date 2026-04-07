@@ -148,6 +148,29 @@ function dedupeWeeklyEntries(raw: any[]): any[] {
   return Object.values(byWeek).sort((a: any, b: any) => a.week_date.localeCompare(b.week_date))
 }
 
+
+function DownloadTemplateButton() {
+  return (
+    <a
+      href="/api/template"
+      download="QMS_Checkin_Template.xlsx"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+        color: '#1565C0', background: '#E3F0FF',
+        border: '1.5px solid #BFDBFE',
+        textDecoration: 'none', transition: 'all 0.15s',
+      }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download template
+    </a>
+  )
+}
+
 export default function Home() {
   const today = new Date().toISOString().slice(0, 10)
   const [tab, setTab]           = useState<TabId>('adv-form')
@@ -363,9 +386,12 @@ export default function Home() {
         {tab === 'adv-form' && (
           <div>
             <Card>
-              <SectionLabel>Upload from spreadsheet</SectionLabel>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94A3B8', margin: 0 }}>Upload from spreadsheet</p>
+                <DownloadTemplateButton />
+              </div>
               <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
-                Use the QMS template to fill in data offline, then upload here. Uploaded data is saved directly to the database and will appear in Trends and History.
+                Fill in the yellow cells in the template and upload here. Data is saved directly to the database and appears in Trends and History.
               </p>
               <UploadButton onUploaded={() => loadEntries('advocate')} />
             </Card>
@@ -510,9 +536,12 @@ export default function Home() {
         {tab === 'fitter-form' && (
           <div>
             <Card>
-              <SectionLabel>Upload from spreadsheet</SectionLabel>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94A3B8', margin: 0 }}>Upload from spreadsheet</p>
+                <DownloadTemplateButton />
+              </div>
               <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
-                Use the QMS template to fill in data offline, then upload here. Uploaded data is saved directly to the database and will appear in Trends and History.
+                Fill in the yellow cells in the template and upload here. Data is saved directly to the database and appears in Trends and History.
               </p>
               <UploadButton onUploaded={() => loadEntries('fitter')} />
             </Card>
