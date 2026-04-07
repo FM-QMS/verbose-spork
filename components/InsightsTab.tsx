@@ -116,7 +116,7 @@ function buildPrompt(advEntries: Entry[], fitterEntries: Entry[]): string {
   return `You are an operations analytics assistant for a healthcare supply company (CGM devices, diabetic shoes, compression garments). Analyze the following weekly check-in data and produce a structured JSON intelligence report.
 
 CURRENT WEEK: ${latestWeek}
-WEEKS SHOWN: Last ${Math.max(advSlice.length, fitterSlice.length)} weeks (oldest to newest)
+WEEKS SHOWN: Last ${WEEKS} weeks per team (oldest to newest)
 
 ## ADVOCATE TEAM DATA
 ${advText}
