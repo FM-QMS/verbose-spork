@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       wins:       body.wins,
       blockers:   body.blockers,
       focus:      body.focus,
+      discussion: body.discussion,
       updated_at: new Date().toISOString(),
     }
 

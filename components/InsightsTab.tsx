@@ -42,39 +42,76 @@ function shortDate(d: string) {
 }
 
 function buildPrompt(advEntries: Entry[], fitterEntries: Entry[]): string {
-  // Use last 6 weeks
-  const advSlice    = advEntries.slice(-6)
-  const fitterSlice = fitterEntries.slice(-6)
+  const WEEKS = 6
 
-  const formatMetrics = (entries: Entry[], deptKeys: string[], depts: any) => {
+  // Per dept, find the last N weeks that actually have metric data for that dept
+  const formatMetrics = (allEntries: Entry[], deptKeys: string[], depts: any) => {
     return deptKeys.map(dk => {
-      const deptLabel = depts[dk].label
+      const deptLabel  = depts[dk].label
       const metricDefs = depts[dk].metrics
+
+      // Find last WEEKS entries that have any metric data for this dept
+      const deptEntries = [...allEntries]
+        .filter(e => e.metrics?.[dk] && Object.keys(e.metrics[dk]).length > 0)
+        .slice(-WEEKS)
+
+      // Fall back to last WEEKS entries overall if no dept-specific data
+      const entries = deptEntries.length > 0 ? deptEntries : allEntries.slice(-WEEKS)
+      const hasMetrics = deptEntries.length > 0
+
       const rows = metricDefs.map((m: any) => {
-        const vals = entries.map(e => {
-          const v = e.metrics?.[dk]?.[m.id]
-          return v !== undefined ? v : null
-        })
+        const vals  = entries.map(e => e.metrics?.[dk]?.[m.id] ?? null)
         const weeks = entries.map(e => shortDate(e.week_date))
         const pairs = weeks.map((w, i) => `${w}:${vals[i] ?? '—'}`).join(', ')
         return `  ${m.label}: [${pairs}]`
       }).join('\n')
 
-      // Phone data summary
-      const phoneRows = entries.map(e => {
-        const advList = e.advocates?.[dk] || []
-        if (!advList.length) return null
-        return advList.map((a: any) => `${shortDate(e.week_date)} ${a.name}: out=${a.out||0} in=${a.in||0} talk=${a.talk||'—'}`).join(', ')
-      }).filter(Boolean)
+      // Phone data — find all entries with real phone data for this dept
+      const allPhoneEntries = [...allEntries]
+        .filter(e => {
+          const advList = e.advocates?.[dk] || []
+          return advList.some((a: any) => a.out || a.in || a.talk || a.pagevisits || a.notescreated)
+        })
+        .slice(-WEEKS)
 
-      return `### ${deptLabel}\n${rows}${phoneRows.length ? `\n\nPhone activity:\n  ${phoneRows.join('\n  ')}` : ''}`
+      const phoneRows = allPhoneEntries.map(e => {
+        const advList = e.advocates?.[dk] || []
+        return `${shortDate(e.week_date)}: ` + advList.map((a: any) => {
+          const parts = []
+          if (a.out) parts.push(`out=${a.out}`)
+          if (a.in)  parts.push(`in=${a.in}`)
+          if (a.talk) parts.push(`talk=${a.talk}`)
+          if (a.pagevisits)   parts.push(`pagevisits=${a.pagevisits}`)
+          if (a.notescreated) parts.push(`notes=${a.notescreated}`)
+          return parts.length ? `${a.name}(${parts.join(',')})` : null
+        }).filter(Boolean).join(' | ')
+      }).filter(s => s.includes('('))
+
+      const metricNote = !hasMetrics ? '\n[Note: No metric data available for this team in recent weeks — phone/page visit data only]' : ''
+      const phoneNote  = phoneRows.length ? `\n\nPhone activity (last ${phoneRows.length} weeks with data):\n  ${phoneRows.join('\n  ')}` : '\n\n[No phone data available for this team]'
+      return `### ${deptLabel}${metricNote}\n${rows}${phoneNote}`
     }).join('\n\n')
   }
 
-  const advText    = advSlice.length    ? formatMetrics(advSlice,    ADV_DEPT_KEYS as unknown as string[],    ADV_DEPTS)    : 'No advocate data available.'
-  const fitterText = fitterSlice.length ? formatMetrics(fitterSlice, FITTER_DEPT_KEYS as unknown as string[], FITTER_DEPTS) : 'No fitter data available.'
+  const advText    = advEntries.length    ? formatMetrics(advEntries,    ADV_DEPT_KEYS as unknown as string[],    ADV_DEPTS)    : 'No advocate data available.'
+  const fitterText = fitterEntries.length ? formatMetrics(fitterEntries, FITTER_DEPT_KEYS as unknown as string[], FITTER_DEPTS) : 'No fitter data available.'
 
-  const latestWeek = advSlice.at(-1)?.week_label || fitterSlice.at(-1)?.week_label || 'Latest week'
+  // Use most recent week label across any team
+  const allLatest = [...advEntries, ...fitterEntries]
+  const latestWeek = allLatest.at(-1)?.week_label || 'Latest week'
+
+  // Build narrative summary from last 3 weeks
+  const recentEntries = [...allLatest].sort((a, b) => b.week_date.localeCompare(a.week_date)).slice(0, 3)
+  const narrativeText = recentEntries
+    .filter((e: any) => e.wins || e.blockers || e.focus || e.discussion)
+    .map((e: any) => {
+      const parts = []
+      if (e.wins)       parts.push(`Wins: ${e.wins}`)
+      if (e.blockers)   parts.push(`Blockers: ${e.blockers}`)
+      if (e.focus)      parts.push(`Priorities: ${e.focus}`)
+      if (e.discussion) parts.push(`Topics for discussion: ${e.discussion}`)
+      return `${shortDate(e.week_date)}:\n  ${parts.join('\n  ')}`
+    }).join('\n\n')
 
   return `You are an operations analytics assistant for a healthcare supply company (CGM devices, diabetic shoes, compression garments). Analyze the following weekly check-in data and produce a structured JSON intelligence report.
 
@@ -86,6 +123,9 @@ ${advText}
 
 ## FITTER TEAM DATA
 ${fitterText}
+
+## WEEKLY NARRATIVES (manager-submitted notes — last 3 weeks)
+${narrativeText || 'No narrative notes submitted yet.'}
 
 ---
 
@@ -130,9 +170,14 @@ Rules:
 - wins: metrics that improved meaningfully (top 2-3 per dept)
 - concerns: metrics trending wrong or spiking (top 2-3 per dept)
 - goals: specific numeric targets for next week based on trend trajectory (top 3-4 per dept). For "queue" metrics (unfilled, missing, denied etc) lower is better. For "activity" metrics (welcome calls, new patient leads) higher is better.
-- phoneInsights: only include if phone data exists, flag = "positive" | "watch" | "neutral"
+- phoneInsights: ONLY include if actual phone data exists for this dept (outbound/inbound calls with real numbers). If phone data shows [No phone data available for this team] or a team has no phone rows at all, set phoneInsights to an empty array []. DO NOT flag missing data as "no activity" — it just means phone data was not uploaded for that team this cycle. Only comment on actual call patterns when numbers are present. flag = "positive" | "watch" | "neutral"
+- IMPORTANT — metric direction rules:
+  * Lower is BETTER (flag increases as concerns, flag decreases as wins): Missing Info, Coverage Pending Approval, Unfilled Orders, Tasks, Denied/Cancelled/Hold RX, Incomplete RX, Prior Auth/Medical Records, Status Changes, Scheduled to Ship, Missed Shipments, On Hold, Need Measurements (Virtual), Shoe Survey Needed, Voicemails, Missing Info In-Office, all Unfilled DO variants, Unfilled CMN, Unfilled RX, Revision, SNF/Hospice Follow-up
+  * Higher is BETTER (flag decreases as concerns, flag increases as wins): Welcome Calls, Shoe Survey Completed, New Patient Leads
+  * Zero is ALWAYS POSITIVE for these cleared-queue fields — never flag as concern: New Notes, New Patient Leads, Portal Updates, Status Changes, My Tasks. Only flag if unusually HIGH and growing.
 - IMPORTANT — cleared queue fields: The following metrics being at zero (0) is ALWAYS a positive sign, never a concern. The teams clearing these to zero means they are on top of their work. Do NOT flag these as concerns when they are low or zero: "New Notes", "New Patient Leads", "Portal Updates", "Status Changes", "My Tasks". Only flag them as concerns if they are unusually HIGH and growing.
 - Be specific with numbers. Do not invent data. Only reference metrics that appear in the data.
+- Use the Weekly Narratives section to inform context and goals — if managers flagged specific blockers or discussion topics, acknowledge them in relevant dept summaries or goals.
 - Return ONLY the JSON object, no markdown fences, no preamble.`
 }
 

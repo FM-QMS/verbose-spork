@@ -19,6 +19,7 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'cgm_hospice',     label: 'CGM Reason: Hospice/SNF' },
       { id: 'cgm_status',      label: 'Status Changes' },
       { id: 'cgm_ship',        label: 'Scheduled to Ship — Attention Needed' },
+      { id: 'cgm_missedship',   label: 'Missed Shipments' },
     ],
     advocates: [
       { name: 'America',  initials: 'AM' },
@@ -30,7 +31,7 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
     label: 'Shoe Tech Advocates', color: '#0F6E56',
     metrics: [
       { id: 'shoe_welcome',         label: 'Welcome Calls',             dir: 'up' },
-      { id: 'shoe_onhold',          label: 'On Hold' },
+      { id: 'shoe_onhold',          label: 'On Hold',                   dir: 'down' },
       { id: 'shoe_measurements',    label: 'Need Measurements (Virtual)' },
       { id: 'shoe_surveydone',      label: 'Shoe Survey Completed',     dir: 'up' },
       { id: 'shoe_surveyneed',      label: 'Shoe Survey Needed' },
@@ -50,8 +51,11 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'chase_cmn',       label: 'Unfilled CMN' },
       { id: 'chase_revision',  label: 'Revision' },
       { id: 'chase_rxnopfp',   label: 'Unfilled RX (No PFP)' },
-      { id: 'chase_domulti',   label: 'Unfilled DO Multi Product' },
+      { id: 'chase_do_shoes',  label: 'Unfilled DO — Diabetic Shoes' },
+      { id: 'chase_do_cgm',    label: 'Unfilled DO — CGM' },
+      { id: 'chase_do_compression', label: 'Unfilled DO — Leg Compression' },
       { id: 'chase_priorauth', label: 'Prior Auth Medical Records' },
+      { id: 'chase_snfhospice', label: 'SNF/Hospice Follow-up' },
     ],
     advocates: [
       { name: 'Julie',  initials: 'JU' },

@@ -186,6 +186,7 @@ export default function Home() {
   const [advWins, setAdvWins]           = useState('')
   const [advBlockers, setAdvBlockers]   = useState('')
   const [advFocus, setAdvFocus]         = useState('')
+  const [advDiscussion, setAdvDiscussion] = useState('')
   const [advMetrics, setAdvMetrics]     = useState<Record<string, Record<string, string>>>({})
   const [advPrev, setAdvPrev]           = useState<Record<string, Record<string, string>>>({})
   const [advAdvocates, setAdvAdvocates] = useState<Record<string, any[]>>({})
@@ -194,6 +195,7 @@ export default function Home() {
   const [fitSubmitter, setFitSubmitter] = useState('')
   const [fitNotes, setFitNotes]         = useState('')
   const [fitWins, setFitWins]           = useState('')
+  const [fitDiscussion, setFitDiscussion] = useState('')
   const [fitBlockers, setFitBlockers]   = useState('')
   const [fitFocus, setFitFocus]         = useState('')
   const [fitMetrics, setFitMetrics]     = useState<Record<string, Record<string, string>>>({})
@@ -259,6 +261,7 @@ export default function Home() {
       wins: isAdv ? advWins : fitWins,
       blockers: isAdv ? advBlockers : fitBlockers,
       focus: isAdv ? advFocus : fitFocus,
+      discussion: isAdv ? advDiscussion : fitDiscussion,
     }
 
     const res = await fetch('/api/checkins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -276,10 +279,10 @@ export default function Home() {
   function clearForm(type: 'advocate' | 'fitter') {
     if (type === 'advocate') {
       setAdvMetrics({}); setAdvPrev({}); setAdvAdvocates({})
-      setAdvSubmitter(''); setAdvNotes(''); setAdvWins(''); setAdvBlockers(''); setAdvFocus('')
+      setAdvSubmitter(''); setAdvNotes(''); setAdvWins(''); setAdvBlockers(''); setAdvFocus(''); setAdvDiscussion('')
     } else {
       setFitMetrics({}); setFitPrev({})
-      setFitSubmitter(''); setFitNotes(''); setFitWins(''); setFitBlockers(''); setFitFocus('')
+      setFitSubmitter(''); setFitNotes(''); setFitWins(''); setFitBlockers(''); setFitFocus(''); setFitDiscussion('')
     }
   }
 
@@ -511,6 +514,10 @@ export default function Home() {
                 <div>
                   <FieldLabel>Top priorities next week</FieldLabel>
                   <textarea placeholder="e.g. Push missing info below 200 on CGM side, reduce missed shipments…" value={advFocus} onChange={e => setAdvFocus(e.target.value)} />
+                </div>
+                <div>
+                  <FieldLabel hint="— items to raise in team meeting">Topics for discussion</FieldLabel>
+                  <textarea placeholder="e.g. Review SNF/Hospice follow-up process, discuss outbound call targets for Q2…" value={advDiscussion} onChange={e => setAdvDiscussion(e.target.value)} />
                 </div>
               </div>
             </Card>

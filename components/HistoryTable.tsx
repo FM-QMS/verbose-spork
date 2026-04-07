@@ -13,6 +13,8 @@ interface Entry {
   advocates?: Record<string, { name: string; out: string; in: string; talk: string; tasks: string }[]>
   wins?: string
   blockers?: string
+  focus?: string
+  discussion?: string
 }
 
 interface Props {
@@ -267,25 +269,28 @@ export default function HistoryTable({ entries, type }: Props) {
       )}
 
       {/* narrative section */}
-      {chrono.some(e => e.wins || e.blockers) && (
+      {chrono.some(e => e.wins || e.blockers || e.focus || (e as any).discussion) && (
         <div style={{ marginTop: 16 }}>
           <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', marginBottom: 10 }}>Weekly narratives</p>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(chrono.length, 3)}, minmax(0,1fr))`, gap: 10 }}>
-            {chrono.filter(e => e.wins || e.blockers).map(e => (
+            {chrono.filter(e => e.wins || e.blockers || e.focus || (e as any).discussion).map(e => (
               <div key={e.week_date} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 14px' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#0A2342', marginBottom: 8, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{shortDate(e.week_date)}</p>
-                {e.wins && (
-                  <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#2E7D32', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Wins</span>
-                    <p style={{ fontSize: 12, color: '#475569', marginTop: 2, lineHeight: 1.5 }}>{e.wins}</p>
-                  </div>
-                )}
-                {e.blockers && (
-                  <div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#C62828', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Blockers</span>
-                    <p style={{ fontSize: 12, color: '#475569', marginTop: 2, lineHeight: 1.5 }}>{e.blockers}</p>
-                  </div>
-                )}
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#0A2342', marginBottom: 10, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{shortDate(e.week_date)}</p>
+                {([
+                  { key: 'wins',       label: 'Wins & progress',     color: '#2E7D32', bg: '#F0FDF4' },
+                  { key: 'blockers',   label: 'Blockers & risks',    color: '#C62828', bg: '#FFF5F5' },
+                  { key: 'focus',      label: 'Top priorities',      color: '#1565C0', bg: '#F0F6FF' },
+                  { key: 'discussion', label: 'Topics for discussion',color: '#6A1B9A', bg: '#F5F0FF' },
+                ] as {key: string; label: string; color: string; bg: string}[]).map(({ key, label, color, bg }) => {
+                  const val = (e as any)[key]
+                  if (!val) return null
+                  return (
+                    <div key={key} style={{ marginBottom: 8, background: bg, borderRadius: 6, padding: '8px 10px' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+                      <p style={{ fontSize: 12, color: '#475569', marginTop: 3, lineHeight: 1.55 }}>{val}</p>
+                    </div>
+                  )
+                })}
               </div>
             ))}
           </div>
