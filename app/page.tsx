@@ -607,6 +607,10 @@ export default function Home() {
                   <FieldLabel>Top priorities next week</FieldLabel>
                   <textarea placeholder="e.g. Clear pending completed RX queue…" value={fitFocus} onChange={e => setFitFocus(e.target.value)} />
                 </div>
+                <div>
+                  <FieldLabel hint="— items to raise in team meeting">Topics for discussion</FieldLabel>
+                  <textarea placeholder="e.g. Review pending Rx queue strategy, fitter assignment backlog…" value={fitDiscussion} onChange={e => setFitDiscussion(e.target.value)} />
+                </div>
               </div>
             </Card>
 
