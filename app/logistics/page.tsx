@@ -293,6 +293,7 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
 // ── Notes Modal ──────────────────────────────────────────────
 function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose: () => void; onSave: (id: string, notes: string) => void }) {
   const [newNote, setNewNote] = useState('')
+  const [author, setAuthor] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Parse existing notes into timestamped entries if possible, else show as-is
@@ -302,9 +303,10 @@ function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose
     if (!newNote.trim()) return
     setSaving(true)
     const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    const byLine = author.trim() ? `${author.trim()} · ${timestamp}` : timestamp
     const appended = existing
-      ? `${existing}\n\n[${timestamp}]\n${newNote.trim()}`
-      : `[${timestamp}]\n${newNote.trim()}`
+      ? `${existing}\n\n[${byLine}]\n${newNote.trim()}`
+      : `[${byLine}]\n${newNote.trim()}`
     await onSave(record.id, appended)
     setNewNote('')
     setSaving(false)
@@ -350,6 +352,12 @@ function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose
         {/* Add note */}
         <div style={{ padding: '14px 22px 18px', borderTop: '1px solid #F1F5F9', flexShrink: 0 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Add note</p>
+          <input
+            value={author}
+            onChange={e => setAuthor(e.target.value)}
+            placeholder="Your name *"
+            style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', boxSizing: 'border-box', marginBottom: 8, fontFamily: 'inherit' }}
+          />
           <textarea
             value={newNote}
             onChange={e => setNewNote(e.target.value)}
@@ -358,7 +366,7 @@ function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
             <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Close</button>
-            <button onClick={handleAdd} disabled={saving || !newNote.trim()}
+            <button onClick={handleAdd} disabled={saving || !newNote.trim() || !author.trim()}
               style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #6B8CC7, #1C2B4A)', color: '#fff', border: 'none', cursor: 'pointer', opacity: saving || !newNote.trim() ? 0.6 : 1 }}>
               {saving ? 'Saving…' : 'Add note'}
             </button>
