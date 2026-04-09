@@ -290,12 +290,92 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
   )
 }
 
+// ── Notes Modal ──────────────────────────────────────────────
+function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose: () => void; onSave: (id: string, notes: string) => void }) {
+  const [newNote, setNewNote] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Parse existing notes into timestamped entries if possible, else show as-is
+  const existing = record.notes || ''
+
+  async function handleAdd() {
+    if (!newNote.trim()) return
+    setSaving(true)
+    const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    const appended = existing
+      ? `${existing}\n\n[${timestamp}]\n${newNote.trim()}`
+      : `[${timestamp}]\n${newNote.trim()}`
+    await onSave(record.id, appended)
+    setNewNote('')
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,40,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0 }}>
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1C2B4A', margin: 0, fontFamily: 'Georgia, serif' }}>Notes</h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0' }}>
+              Patient {record.patient_id} · {record.type === 'return' ? 'Return' : 'Exchange'}{record.po_number ? ` · ${record.po_number}` : ''}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94A3B8', padding: 4, lineHeight: 1 }}>✕</button>
+        </div>
+
+        {/* Existing notes */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 22px' }}>
+          {existing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {existing.split(/\n\n(?=\[)/).map((entry, i) => {
+                const tsMatch = entry.match(/^\[(.+?)\]\n?/)
+                const ts   = tsMatch ? tsMatch[1] : null
+                const text = tsMatch ? entry.slice(tsMatch[0].length) : entry
+                return (
+                  <div key={i} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px' }}>
+                    {ts && <p style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 5px' }}>{ts}</p>}
+                    <p style={{ fontSize: 13, color: '#334155', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{text}</p>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8' }}>
+              <p style={{ fontSize: 13, margin: 0 }}>No notes yet</p>
+            </div>
+          )}
+        </div>
+
+        {/* Add note */}
+        <div style={{ padding: '14px 22px 18px', borderTop: '1px solid #F1F5F9', flexShrink: 0 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Add note</p>
+          <textarea
+            value={newNote}
+            onChange={e => setNewNote(e.target.value)}
+            placeholder="Type a note…"
+            style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', resize: 'vertical', minHeight: 72, boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+            <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Close</button>
+            <button onClick={handleAdd} disabled={saving || !newNote.trim()}
+              style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #6B8CC7, #1C2B4A)', color: '#fff', border: 'none', cursor: 'pointer', opacity: saving || !newNote.trim() ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : 'Add note'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Records Table ────────────────────────────────────────────
 function RecordsTable({
-  records, loading, onEdit, onComplete, showComplete = false, isQueue = false
+  records, loading, onEdit, onNotes, onComplete, showComplete = false, isQueue = false
 }: {
   records: ReturnRecord[]; loading: boolean;
   onEdit: (r: ReturnRecord) => void;
+  onNotes?: (r: ReturnRecord) => void;
   onComplete?: (r: ReturnRecord) => void;
   showComplete?: boolean;
   isQueue?: boolean;
@@ -373,22 +453,11 @@ function RecordsTable({
                 <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.advocate || '—'}</span></td>
                 {isQueue && <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.shipping_coordinator || '—'}</span></td>}
                 <td style={tdStyle}>
-                  {r.notes ? (
-                    <div style={{ position: 'relative', display: 'inline-block' }}
-                      onMouseEnter={e => {
-                        const tip = e.currentTarget.querySelector('.notes-tip') as HTMLElement
-                        if (tip) tip.style.display = 'block'
-                      }}
-                      onMouseLeave={e => {
-                        const tip = e.currentTarget.querySelector('.notes-tip') as HTMLElement
-                        if (tip) tip.style.display = 'none'
-                      }}>
-                      <span style={{ fontSize: 12, color: '#6B8CC7', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>View note</span>
-                      <div className="notes-tip" style={{ display: 'none', position: 'absolute', bottom: '100%', right: 0, marginBottom: 5, background: '#1C2B4A', color: '#fff', fontSize: 12, padding: '8px 12px', borderRadius: 8, whiteSpace: 'pre-wrap', maxWidth: 260, zIndex: 10, lineHeight: 1.5, boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
-                        {r.notes}
-                      </div>
-                    </div>
-                  ) : <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>}
+                  <button
+                    onClick={() => onNotes?.(r)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: r.notes ? '#6B8CC7' : '#94A3B8', fontWeight: r.notes ? 600 : 400, textDecoration: r.notes ? 'underline' : 'none', textDecorationStyle: 'dotted' as any }}>
+                    {r.notes ? 'View / add' : '+ Add note'}
+                  </button>
                 </td>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -426,6 +495,7 @@ export default function LogisticsApp() {
   const [loading, setLoading] = useState(false)
   const [newModal, setNewModal]   = useState<'return' | 'exchange' | null>(null)
   const [editRecord, setEditRecord] = useState<ReturnRecord | null>(null)
+  const [notesRecord, setNotesRecord] = useState<ReturnRecord | null>(null)
   const [search, setSearch]   = useState('')
   const [toast, setToast]     = useState('')
 
@@ -457,6 +527,14 @@ export default function LogisticsApp() {
     const res = await fetch(`/api/returns/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) { showToast('Record updated'); setEditRecord(null); load() }
     else { const e = await res.json(); showToast('Error: ' + e.error) }
+  }
+
+  async function handleNoteSave(id: string, notes: string) {
+    await handleUpdate(id, { notes })
+    // Update notesRecord in place so modal reflects new note immediately
+    setNotesRecord(prev => prev ? { ...prev, notes } : null)
+    // Also refresh list
+    load()
   }
 
   async function handleComplete(record: ReturnRecord) {
@@ -562,6 +640,7 @@ export default function LogisticsApp() {
             records={filtered}
             loading={loading}
             onEdit={setEditRecord}
+            onNotes={setNotesRecord}
             onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' ? handleComplete : undefined)}
             showComplete={tab === 'returns' || tab === 'exchanges'}
             isQueue={tab === 'queue'}
@@ -577,6 +656,7 @@ export default function LogisticsApp() {
       </div>
 
       {/* Modals */}
+      {notesRecord && <NotesModal record={notesRecord} onClose={() => setNotesRecord(null)} onSave={handleNoteSave} />}
       {newModal && <NewRecordModal type={newModal} onClose={() => setNewModal(null)} onSave={handleCreate} />}
       {editRecord && <EditModal record={editRecord} onClose={() => setEditRecord(null)} onSave={handleUpdate} />}
 
