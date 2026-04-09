@@ -16,7 +16,7 @@ export type ShipmentStatus =
 
 export type RefundStatus =
   | 'Missing Products'
-  | 'Refund Initiated'
+  | 'In Transit'
   | 'Return Not Received'
 
 export type ExchangeStatus =
@@ -58,7 +58,7 @@ export const SHIPMENT_STATUSES: ShipmentStatus[] = [
 
 export const REFUND_STATUSES: RefundStatus[] = [
   'Missing Products',
-  'Refund Initiated',
+  'In Transit',
   'Return Not Received',
 ]
 

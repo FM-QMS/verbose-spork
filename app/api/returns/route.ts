@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         exchange_status:  body.exchange_status || null,
         updated_product:  body.updated_product || null,
         advocate:         body.advocate,
+        hcpcs:            body.hcpcs || null,
         notes:            body.notes,
         completed:        false,
         updated_at:       new Date().toISOString(),

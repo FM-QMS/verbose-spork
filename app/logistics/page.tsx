@@ -20,7 +20,7 @@ const SHIPMENT_COLORS: Record<ShipmentStatus, { bg: string; text: string; dot: s
 }
 const REFUND_COLORS: Record<RefundStatus, { bg: string; text: string; dot: string }> = {
   'Missing Products':   { bg: '#FFF1F2', text: '#BE123C', dot: '#F43F5E' },
-  'Refund Initiated':   { bg: '#F0FDF4', text: '#166534', dot: '#22C55E' },
+  'In Transit':         { bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
   'Return Not Received':{ bg: '#FFFBEB', text: '#92400E', dot: '#F59E0B' },
 }
 const EXCHANGE_COLORS: Record<ExchangeStatus, { bg: string; text: string; dot: string }> = {
@@ -51,7 +51,7 @@ function fmt(d?: string) {
 function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'; onClose: () => void; onSave: (data: any) => void }) {
   const [form, setForm] = useState({
     patient_id: '', po_number: '', product: '', manufacturer: '',
-    advocate: '', notes: '',
+    advocate: '', notes: '', hcpcs: '',
     shipment_status: 'Return Label Needed' as ShipmentStatus,
     refund_status: '' as RefundStatus | '',
     exchange_status: '' as ExchangeStatus | '',
@@ -64,7 +64,7 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
   async function handleSave() {
     if (!form.patient_id.trim()) return
     setSaving(true)
-    await onSave({ ...form, type, refund_status: form.refund_status || null, exchange_status: form.exchange_status || null })
+    await onSave({ ...form, type, hcpcs: form.hcpcs || null, refund_status: form.refund_status || null, exchange_status: form.exchange_status || null })
     setSaving(false)
   }
 
@@ -99,7 +99,19 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
 
           <div>
             <label style={labelStyle}>Product</label>
-            <input style={inputStyle} value={form.product} onChange={e => set('product', e.target.value)} placeholder="e.g. CGM Device, Diabetic Shoes, Compression Garment" />
+            <div style={{ position: 'relative' }}>
+              <input style={inputStyle} value={form.product} onChange={e => set('product', e.target.value)} placeholder="e.g. CGM Device, Diabetic Shoes, Compression Garment" />
+              {form.hcpcs && (
+                <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 700, color: '#6B8CC7', background: '#EFF4FF', padding: '2px 8px', borderRadius: 10, pointerEvents: 'none' }}>
+                  {form.hcpcs}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>HCPCS Code</label>
+            <input style={inputStyle} value={form.hcpcs} onChange={e => set('hcpcs', e.target.value)} placeholder="e.g. A5500, K0001" />
           </div>
 
           <div>
@@ -122,7 +134,7 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
 
           {type === 'return' && (
             <div>
-              <label style={labelStyle}>Refund Status</label>
+              <label style={labelStyle}>Return Status</label>
               <select style={inputStyle} value={form.refund_status} onChange={e => set('refund_status', e.target.value as RefundStatus)}>
                 <option value="">— Select —</option>
                 {REFUND_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -220,7 +232,7 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
 
           {record.type === 'return' && (
             <div>
-              <label style={labelStyle}>Refund Status</label>
+              <label style={labelStyle}>Return Status</label>
               <select style={inputStyle} value={form.refund_status} onChange={e => set('refund_status', e.target.value)}>
                 <option value="">— Select —</option>
                 {REFUND_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -313,10 +325,11 @@ function RecordsTable({
             <th style={thStyle}>Product</th>
             {!isQueue && <th style={thStyle}>Manufacturer</th>}
             <th style={thStyle}>Shipment Status</th>
-            <th style={thStyle}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Refund Status'}</th>
+            <th style={thStyle}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Return Status'}</th>
             {records[0]?.type === 'exchange' && <th style={thStyle}>Replacement</th>}
             <th style={thStyle}>Advocate</th>
             {isQueue && <th style={thStyle}>Coordinator</th>}
+            <th style={thStyle}>Notes</th>
             <th style={thStyle}>Actions</th>
           </tr>
         </thead>
@@ -333,13 +346,50 @@ function RecordsTable({
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
                 <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{r.po_number || '—'}</span></td>
-                <td style={{ ...tdStyle, maxWidth: 160 }}><span style={{ fontSize: 12 }}>{r.product || '—'}</span></td>
+                <td style={{ ...tdStyle, maxWidth: 160 }}>
+                  {r.product ? (
+                    <div style={{ position: 'relative', display: 'inline-block' }}
+                      onMouseEnter={e => {
+                        const tip = e.currentTarget.querySelector('.hcpcs-tip') as HTMLElement
+                        if (tip) tip.style.display = 'block'
+                      }}
+                      onMouseLeave={e => {
+                        const tip = e.currentTarget.querySelector('.hcpcs-tip') as HTMLElement
+                        if (tip) tip.style.display = 'none'
+                      }}>
+                      <span style={{ fontSize: 12, cursor: (r as any).hcpcs ? 'help' : 'default', borderBottom: (r as any).hcpcs ? '1px dashed #94A3B8' : 'none' }}>{r.product}</span>
+                      {(r as any).hcpcs && (
+                        <div className="hcpcs-tip" style={{ display: 'none', position: 'absolute', bottom: '100%', left: 0, marginBottom: 5, background: '#1C2B4A', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, whiteSpace: 'nowrap', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                          HCPCS: {(r as any).hcpcs}
+                        </div>
+                      )}
+                    </div>
+                  ) : <span style={{ color: '#CBD5E1' }}>—</span>}
+                </td>
                 {!isQueue && <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{r.manufacturer || '—'}</span></td>}
                 <td style={tdStyle}><StatusBadge status={r.shipment_status} colors={shipColor} /></td>
                 <td style={tdStyle}>{secStatus && secColor ? <StatusBadge status={secStatus} colors={secColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
                 {r.type === 'exchange' && <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{r.updated_product || '—'}</span></td>}
                 <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.advocate || '—'}</span></td>
                 {isQueue && <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.shipping_coordinator || '—'}</span></td>}
+                <td style={tdStyle}>
+                  {r.notes ? (
+                    <div style={{ position: 'relative', display: 'inline-block' }}
+                      onMouseEnter={e => {
+                        const tip = e.currentTarget.querySelector('.notes-tip') as HTMLElement
+                        if (tip) tip.style.display = 'block'
+                      }}
+                      onMouseLeave={e => {
+                        const tip = e.currentTarget.querySelector('.notes-tip') as HTMLElement
+                        if (tip) tip.style.display = 'none'
+                      }}>
+                      <span style={{ fontSize: 12, color: '#6B8CC7', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>View note</span>
+                      <div className="notes-tip" style={{ display: 'none', position: 'absolute', bottom: '100%', right: 0, marginBottom: 5, background: '#1C2B4A', color: '#fff', fontSize: 12, padding: '8px 12px', borderRadius: 8, whiteSpace: 'pre-wrap', maxWidth: 260, zIndex: 10, lineHeight: 1.5, boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+                        {r.notes}
+                      </div>
+                    </div>
+                  ) : <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>}
+                </td>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button onClick={() => onEdit(r)}
