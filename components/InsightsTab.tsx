@@ -67,25 +67,28 @@ function buildPrompt(advEntries: Entry[], fitterEntries: Entry[]): string {
       }).join('\n')
 
       // Phone data — find all entries with real phone data for this dept
+      const hasVal = (v: any) => v !== null && v !== undefined && v !== ''
       const allPhoneEntries = [...allEntries]
         .filter(e => {
           const advList = e.advocates?.[dk] || []
-          return advList.some((a: any) => a.out || a.in || a.talk || a.pagevisits || a.notescreated)
+          return advList.some((a: any) => hasVal(a.out) || hasVal(a.in) || hasVal(a.talk) || hasVal(a.pagevisits) || hasVal(a.notescreated))
         })
         .slice(-WEEKS)
 
       const phoneRows = allPhoneEntries.map(e => {
         const advList = e.advocates?.[dk] || []
-        return `${shortDate(e.week_date)}: ` + advList.map((a: any) => {
+        const advParts = advList.map((a: any) => {
           const parts = []
-          if (a.out) parts.push(`out=${a.out}`)
-          if (a.in)  parts.push(`in=${a.in}`)
-          if (a.talk) parts.push(`talk=${a.talk}`)
-          if (a.pagevisits)   parts.push(`pagevisits=${a.pagevisits}`)
-          if (a.notescreated) parts.push(`notes=${a.notescreated}`)
-          return parts.length ? `${a.name}(${parts.join(',')})` : null
-        }).filter(Boolean).join(' | ')
-      }).filter(s => s.includes('('))
+          if (hasVal(a.out))          parts.push(`out=${a.out}`)
+          if (hasVal(a.in))           parts.push(`in=${a.in}`)
+          if (hasVal(a.talk))         parts.push(`talk=${a.talk}`)
+          if (hasVal(a.pagevisits))   parts.push(`pagevisits=${a.pagevisits}`)
+          if (hasVal(a.notescreated)) parts.push(`notes=${a.notescreated}`)
+          // Always include advocate name even if all zeros — shows they were tracked
+          return `${a.name}(${parts.length ? parts.join(',') : 'no activity'})`
+        })
+        return advParts.length ? `${shortDate(e.week_date)}: ${advParts.join(' | ')}` : null
+      }).filter(Boolean) as string[]
 
       const metricNote = !hasMetrics ? '\n[Note: No metric data available for this team in recent weeks — phone/page visit data only]' : ''
       const phoneNote  = phoneRows.length ? `\n\nPhone activity (last ${phoneRows.length} weeks with data):\n  ${phoneRows.join('\n  ')}` : '\n\n[No phone data available for this team]'
@@ -189,6 +192,11 @@ export default function InsightsTab() {
   const [snapshots, setSnapshots]   = useState<{id: string; label: string; report: Report}[]>([])
   const [selectedSnap, setSelectedSnap] = useState<string>('')
   const [savingSnap, setSavingSnap] = useState(false)
+  const [insightView, setInsightView] = useState<'report' | 'agenda'>('report')
+  const [agendaEntries, setAgendaEntries] = useState<any[]>([])
+  const [agendaLoading, setAgendaLoading] = useState(false)
+  const [agendaForm, setAgendaForm] = useState({ submitter: '', wins: '', blockers: '', focus: '', discussion: '' })
+  const [agendaSaving, setAgendaSaving] = useState(false)
 
   // Load saved snapshots from Supabase on mount
   useEffect(() => {
@@ -205,6 +213,52 @@ export default function InsightsTab() {
     } catch {}
   }
 
+  async function loadAgenda() {
+    setAgendaLoading(true)
+    try {
+      const res = await fetch('/api/checkins?type=advocate')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        const withNarrative = data
+          .filter((e: any) => e.wins || e.blockers || e.focus || e.discussion || e.submitter)
+          .sort((a: any, b: any) => b.week_date.localeCompare(a.week_date))
+          .slice(0, 12)
+        setAgendaEntries(withNarrative)
+      }
+    } catch {}
+    setAgendaLoading(false)
+  }
+
+  async function saveAgendaNote() {
+    if (!agendaForm.submitter.trim()) return
+    setAgendaSaving(true)
+    try {
+      const weekDate = new Date()
+      const day = weekDate.getDay()
+      const mon = new Date(weekDate); mon.setDate(weekDate.getDate() - (day === 0 ? 6 : day - 1))
+      const weekStr = mon.toISOString().slice(0, 10)
+      await fetch('/api/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'advocate',
+          week_date: weekStr,
+          week_label: '',
+          submitter: agendaForm.submitter,
+          metrics: {},
+          advocates: {},
+          wins: agendaForm.wins,
+          blockers: agendaForm.blockers,
+          focus: agendaForm.focus,
+          discussion: agendaForm.discussion,
+        })
+      })
+      setAgendaForm({ submitter: agendaForm.submitter, wins: '', blockers: '', focus: '', discussion: '' })
+      await loadAgenda()
+    } catch {}
+    setAgendaSaving(false)
+  }
+
   async function saveSnapshot(r: Report) {
     setSavingSnap(true)
     try {
@@ -217,6 +271,10 @@ export default function InsightsTab() {
     } catch {}
     setSavingSnap(false)
   }
+
+  useEffect(() => {
+    if (insightView === 'agenda') loadAgenda()
+  }, [insightView])
 
   async function generate() {
     setLoading(true)
@@ -276,8 +334,115 @@ export default function InsightsTab() {
 
   const sections = report ? (activeSection === 'advocate' ? report.advocate : report.fitter) : []
 
+  const NAVY = '#1C2B4A'
+  const BLUE = '#6B8CC7'
+  const PINK = '#E8689A'
+
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', boxSizing: 'border-box' as const, background: '#fff', fontFamily: 'inherit' }
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 5 }
+
+  function shortFmt(d: string) {
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+    catch { return d }
+  }
+
   return (
     <div>
+      {/* View switcher */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {([['report', 'Weekly Report'], ['agenda', 'Agenda']] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setInsightView(v)}
+            style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              border: `1.5px solid ${insightView === v ? NAVY : '#E2E8F0'}`,
+              background: insightView === v ? NAVY : '#fff',
+              color: insightView === v ? '#fff' : '#64748B' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── AGENDA VIEW ── */}
+      {insightView === 'agenda' && (
+        <div>
+          {/* Add narrative card */}
+          <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '20px 22px', marginBottom: 16 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94A3B8', margin: '0 0 14px' }}>Add this week's narrative</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Your name *</label>
+                <input style={inputStyle} value={agendaForm.submitter} onChange={e => setAgendaForm(p => ({...p, submitter: e.target.value}))} placeholder="e.g. Frank Molina" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>🏆 Wins & progress</label>
+                  <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={agendaForm.wins} onChange={e => setAgendaForm(p => ({...p, wins: e.target.value}))} placeholder="What moved the needle this week?" />
+                </div>
+                <div>
+                  <label style={labelStyle}>⚠ Blockers & risks</label>
+                  <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={agendaForm.blockers} onChange={e => setAgendaForm(p => ({...p, blockers: e.target.value}))} placeholder="What's slowing the team down?" />
+                </div>
+                <div>
+                  <label style={labelStyle}>🎯 Top priorities</label>
+                  <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={agendaForm.focus} onChange={e => setAgendaForm(p => ({...p, focus: e.target.value}))} placeholder="Focus areas for next week" />
+                </div>
+                <div>
+                  <label style={labelStyle}>💬 Topics for discussion</label>
+                  <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={agendaForm.discussion} onChange={e => setAgendaForm(p => ({...p, discussion: e.target.value}))} placeholder="Items to raise in team meeting" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={saveAgendaNote} disabled={agendaSaving || !agendaForm.submitter.trim()}
+                  style={{ padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg, ${PINK}, #C94F82)`, color: '#fff', border: 'none', cursor: 'pointer', opacity: agendaSaving || !agendaForm.submitter.trim() ? 0.6 : 1 }}>
+                  {agendaSaving ? 'Saving…' : 'Save narrative'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Narrative history */}
+          {agendaLoading ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>Loading…</div>
+          ) : agendaEntries.length === 0 ? (
+            <div style={{ background: '#F8FAFC', border: '1.5px dashed #E2E8F0', borderRadius: 10, padding: '2rem', textAlign: 'center' }}>
+              <p style={{ color: '#94A3B8', fontSize: 13, margin: 0 }}>No narrative notes yet. Fill in the form above to get started.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {agendaEntries.map((e: any) => (
+                <div key={e.id || e.week_date} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #F1F5F9' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: NAVY, fontFamily: 'Georgia, serif' }}>
+                      {e.week_label || shortFmt(e.week_date)}
+                    </span>
+                    {e.submitter && <span style={{ fontSize: 11, fontWeight: 600, color: BLUE, background: '#EFF4FF', padding: '2px 10px', borderRadius: 20 }}>{e.submitter}</span>}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    {([
+                      { key: 'wins',       label: '🏆 Wins & progress',       color: '#166534', bg: '#F0FDF4', border: '#BBF7D0' },
+                      { key: 'blockers',   label: '⚠ Blockers & risks',       color: '#991B1B', bg: '#FFF5F5', border: '#FED7D7' },
+                      { key: 'focus',      label: '🎯 Top priorities',         color: '#1E40AF', bg: '#EFF6FF', border: '#BFDBFE' },
+                      { key: 'discussion', label: '💬 Topics for discussion',  color: '#6B21A8', bg: '#FAF5FF', border: '#E9D5FF' },
+                    ] as any[]).map(({ key, label, color, bg, border }) => {
+                      const val = e[key]
+                      if (!val) return null
+                      return (
+                        <div key={key} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 8, padding: '10px 12px' }}>
+                          <p style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 5px' }}>{label}</p>
+                          <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{val}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── REPORT VIEW ── */}
+      {insightView === 'report' && (
+      <div>
       {/* generate button */}
       {/* Snapshot selector */}
       {snapshots.length > 0 && (
@@ -497,6 +662,8 @@ export default function InsightsTab() {
           </p>
         </div>
       )}
+    </div>
+      )} {/* end report view */}
     </div>
   )
 }

@@ -43,6 +43,12 @@ export interface ReturnRecord {
   advocate?: string
   shipping_coordinator?: string
   notes?: string
+  in_refund?: boolean
+  refund_tab_status?: string
+  request_number?: string
+  date_of_service?: string
+  product_type?: string
+  hcpcs?: string
   completed: boolean
   completed_at?: string
   created_at: string

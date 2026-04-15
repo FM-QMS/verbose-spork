@@ -295,7 +295,7 @@ export default function Home() {
 
       {/* top bar */}
       <div style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #2A3F6B 100%)`, boxShadow: '0 2px 16px rgba(28,43,74,0.3)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <a href="/" style={{ textDecoration: 'none' }}>
               <img src={LOGO_SRC} alt="Quantum Medical" style={{ height: 38, objectFit: 'contain' }} />
@@ -318,7 +318,7 @@ export default function Home() {
         </div>
 
         {/* nav */}
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'flex', gap: 0, overflowX: 'auto', alignItems: 'stretch' }}>
             {TAB_GROUPS.map((group, gi) => {
               const groupActive = group.tabs.some(t => t.id === tab)
@@ -508,6 +508,10 @@ export default function Home() {
               <SectionLabel>Weekly narrative</SectionLabel>
               <div className="space-y-4">
                 <div>
+                  <FieldLabel>Submitted by</FieldLabel>
+                  <input type="text" placeholder="Your name" value={advSubmitter} onChange={e => setAdvSubmitter(e.target.value)} />
+                </div>
+                <div>
                   <FieldLabel hint="— what moved the needle?">Wins &amp; progress</FieldLabel>
                   <textarea placeholder="e.g. Unfilled orders down across all three teams, prior auth volume stabilizing…" value={advWins} onChange={e => setAdvWins(e.target.value)} />
                 </div>
@@ -599,6 +603,10 @@ export default function Home() {
             <Card>
               <SectionLabel>Weekly narrative</SectionLabel>
               <div className="space-y-4">
+                <div>
+                  <FieldLabel>Submitted by</FieldLabel>
+                  <input type="text" placeholder="Your name" value={fitSubmitter} onChange={e => setFitSubmitter(e.target.value)} />
+                </div>
                 <div>
                   <FieldLabel hint="— what moved the needle?">Wins &amp; progress</FieldLabel>
                   <textarea placeholder="e.g. Fitter declined numbers reduced this week…" value={fitWins} onChange={e => setFitWins(e.target.value)} />

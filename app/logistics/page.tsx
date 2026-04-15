@@ -18,10 +18,12 @@ const SHIPMENT_COLORS: Record<ShipmentStatus, { bg: string; text: string; dot: s
   'Return Received':      { bg: '#F0FDF4', text: '#166534', dot: '#22C55E' },
   'Shipped New Garment':  { bg: '#FAF5FF', text: '#6D28D9', dot: '#A855F7' },
 }
-const REFUND_COLORS: Record<RefundStatus, { bg: string; text: string; dot: string }> = {
-  'Missing Products':   { bg: '#FFF1F2', text: '#BE123C', dot: '#F43F5E' },
-  'In Transit':         { bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
-  'Return Not Received':{ bg: '#FFFBEB', text: '#92400E', dot: '#F59E0B' },
+const REFUND_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  'Missing Products':    { bg: '#FFF1F2', text: '#BE123C', dot: '#F43F5E' },
+  'In Transit':          { bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
+  'Return Not Received': { bg: '#FFFBEB', text: '#92400E', dot: '#F59E0B' },
+  'Refund Initiated':    { bg: '#F0FDF4', text: '#166534', dot: '#22C55E' },
+  'Refund Complete':     { bg: '#FAF5FF', text: '#6D28D9', dot: '#A855F7' },
 }
 const EXCHANGE_COLORS: Record<ExchangeStatus, { bg: string; text: string; dot: string }> = {
   'Received Return':       { bg: '#F0FDF4', text: '#166534', dot: '#22C55E' },
@@ -377,9 +379,80 @@ function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose
   )
 }
 
+
+// ── Refund Modal ──────────────────────────────────────────────
+function RefundModal({ record, onClose, onSave }: { record: ReturnRecord; onClose: () => void; onSave: (id: string, data: any) => void }) {
+  const [form, setForm] = useState({
+    request_number:    record.request_number    || '',
+    date_of_service:   record.date_of_service   || '',
+    product_type:      record.product_type      || record.product || '',
+    refund_tab_status: record.refund_tab_status || 'Refund Initiated',
+  })
+  const [saving, setSaving] = useState(false)
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(record.id, { ...form, in_refund: true })
+    setSaving(false)
+  }
+
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#1C2B4A', background: '#fff', boxSizing: 'border-box' as const }
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 5, display: 'block' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,40,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1C2B4A', margin: 0, fontFamily: 'Georgia, serif' }}>Move to Refunds</h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0' }}>Patient {record.patient_id} · {record.po_number || 'No PO'}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94A3B8' }}>✕</button>
+        </div>
+
+        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Request #</label>
+              <input style={inputStyle} value={form.request_number} onChange={e => set('request_number', e.target.value)} placeholder="e.g. REQ-001" />
+            </div>
+            <div>
+              <label style={labelStyle}>Date of Service</label>
+              <input type="date" style={inputStyle} value={form.date_of_service} onChange={e => set('date_of_service', e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Product Type</label>
+            <input style={inputStyle} value={form.product_type} onChange={e => set('product_type', e.target.value)} placeholder="e.g. Leg Compression, CGM Device" />
+          </div>
+          <div>
+            <label style={labelStyle}>Refund Status</label>
+            <select style={inputStyle} value={form.refund_tab_status} onChange={e => set('refund_tab_status', e.target.value)}>
+              <option value="Refund Initiated">Refund Initiated</option>
+              <option value="Refund Complete">Refund Complete</option>
+            </select>
+          </div>
+          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#92400E' }}>
+            Selecting <strong>Refund Complete</strong> will move this record to Order History.
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 22px 18px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #E8689A, #C94F82)', color: '#fff', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving…' : 'Confirm refund'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Records Table ────────────────────────────────────────────
 function RecordsTable({
-  records, loading, onEdit, onNotes, onRefund, onComplete, showComplete = false, isQueue = false
+  records, loading, onEdit, onNotes, onRefund, onComplete, showComplete = false, isQueue = false, isRefund = false
 }: {
   records: ReturnRecord[]; loading: boolean;
   onEdit: (r: ReturnRecord) => void;
@@ -388,6 +461,7 @@ function RecordsTable({
   onComplete?: (r: ReturnRecord) => void;
   showComplete?: boolean;
   isQueue?: boolean;
+  isRefund?: boolean;
 }) {
   if (loading) return (
     <div style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
@@ -408,18 +482,29 @@ function RecordsTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
         <thead>
           <tr>
-            <th style={thStyle}>Date</th>
-            <th style={thStyle}>Patient ID</th>
-            <th style={thStyle}>PO #</th>
-            <th style={thStyle}>Product</th>
-            {!isQueue && <th style={thStyle}>Manufacturer</th>}
-            <th style={thStyle}>Shipment Status</th>
-            <th style={thStyle}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Return Status'}</th>
-            {records[0]?.type === 'exchange' && <th style={thStyle}>Replacement</th>}
-            <th style={thStyle}>Advocate</th>
-            {isQueue && <th style={thStyle}>Coordinator</th>}
-            <th style={thStyle}>Notes</th>
-            <th style={thStyle}>Actions</th>
+            {isRefund ? (<>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Patient ID</th>
+              <th style={thStyle}>Request #</th>
+              <th style={thStyle}>Date of Service</th>
+              <th style={thStyle}>Product Type</th>
+              <th style={thStyle}>Refund Status</th>
+              <th style={thStyle}>Notes</th>
+              <th style={thStyle}>Actions</th>
+            </>) : (<>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Patient ID</th>
+              <th style={thStyle}>PO #</th>
+              <th style={thStyle}>Product</th>
+              {!isQueue && <th style={thStyle}>Manufacturer</th>}
+              <th style={thStyle}>Shipment Status</th>
+              <th style={thStyle}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Return Status'}</th>
+              {records[0]?.type === 'exchange' && <th style={thStyle}>Replacement</th>}
+              <th style={thStyle}>Advocate</th>
+              {isQueue && <th style={thStyle}>Coordinator</th>}
+              <th style={thStyle}>Notes</th>
+              <th style={thStyle}>Actions</th>
+            </>)}
           </tr>
         </thead>
         <tbody>
@@ -429,6 +514,30 @@ function RecordsTable({
             const secColor  = r.type === 'exchange'
               ? (r.exchange_status ? EXCHANGE_COLORS[r.exchange_status] : null)
               : (r.refund_status   ? REFUND_COLORS[r.refund_status]     : null)
+
+            const refundStatusColor = (r as any).refund_tab_status ? (REFUND_COLORS[(r as any).refund_tab_status] || { bg: '#F8FAFC', text: '#64748B', dot: '#CBD5E1' }) : null
+
+            if (isRefund) return (
+              <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
+                <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).request_number || '—'}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).date_of_service ? fmt((r as any).date_of_service) : '—'}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12 }}>{(r as any).product_type || r.product || '—'}</span></td>
+                <td style={tdStyle}>{refundStatusColor ? <StatusBadge status={(r as any).refund_tab_status} colors={refundStatusColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
+                <td style={tdStyle}>
+                  <button onClick={() => onNotes?.(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: r.notes ? '#6B8CC7' : '#94A3B8', fontWeight: r.notes ? 600 : 400, textDecoration: r.notes ? 'underline' : 'none', textDecorationStyle: 'dotted' as any }}>
+                    {r.notes ? 'View / add' : '+ Add note'}
+                  </button>
+                </td>
+                <td style={tdStyle}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => onEdit(r)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', cursor: 'pointer' }}>Update</button>
+                    {onComplete && <button onClick={() => onComplete(r)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', cursor: 'pointer' }}>Complete ✓</button>}
+                  </div>
+                </td>
+              </tr>
+            )
 
             return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
@@ -511,6 +620,7 @@ export default function LogisticsApp() {
   const [newModal, setNewModal]   = useState<'return' | 'exchange' | null>(null)
   const [editRecord, setEditRecord] = useState<ReturnRecord | null>(null)
   const [notesRecord, setNotesRecord] = useState<ReturnRecord | null>(null)
+  const [refundRecord, setRefundRecord] = useState<ReturnRecord | null>(null)
   const [search, setSearch]   = useState('')
   const [toast, setToast]     = useState('')
 
@@ -558,10 +668,21 @@ export default function LogisticsApp() {
     await handleUpdate(record.id, { completed: true })
   }
 
-  async function handleRefund(record: ReturnRecord) {
-    if (!confirm(`Move this ${record.type} for patient ${record.patient_id} to the Refund tab?`)) return
-    await handleUpdate(record.id, { in_refund: true })
-    showToast('Moved to Refunds')
+  function handleRefund(record: ReturnRecord) {
+    setRefundRecord(record)
+  }
+
+  async function handleRefundSave(id: string, data: any) {
+    // If Refund Complete, also mark as completed
+    const updates = { ...data }
+    if (data.refund_tab_status === 'Refund Complete') {
+      updates.completed = true
+      updates.completed_at = new Date().toISOString()
+      updates.date_completed = new Date().toISOString().slice(0, 10)
+    }
+    await handleUpdate(id, updates)
+    setRefundRecord(null)
+    showToast(data.refund_tab_status === 'Refund Complete' ? 'Refund complete — moved to Order History' : 'Moved to Refunds')
   }
 
   async function handleLabelSent(record: ReturnRecord) {
@@ -668,6 +789,8 @@ export default function LogisticsApp() {
             onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
             showComplete={tab === 'returns' || tab === 'exchanges'}
             isQueue={tab === 'queue'}
+            isRefund={tab === 'refund'}
+            onComplete={tab === 'queue' ? handleLabelSent : (tab === 'refund' ? handleComplete : (tab !== 'history' ? handleComplete : undefined))}
           />
         </div>
 
@@ -680,6 +803,7 @@ export default function LogisticsApp() {
       </div>
 
       {/* Modals */}
+      {refundRecord && <RefundModal record={refundRecord} onClose={() => setRefundRecord(null)} onSave={handleRefundSave} />}
       {notesRecord && <NotesModal record={notesRecord} onClose={() => setNotesRecord(null)} onSave={handleNoteSave} />}
       {newModal && <NewRecordModal type={newModal} onClose={() => setNewModal(null)} onSave={handleCreate} />}
       {editRecord && <EditModal record={editRecord} onClose={() => setEditRecord(null)} onSave={handleUpdate} />}
