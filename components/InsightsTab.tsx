@@ -220,7 +220,7 @@ export default function InsightsTab() {
       const data = await res.json()
       if (Array.isArray(data)) {
         const withNarrative = data
-          .filter((e: any) => e.wins || e.blockers || e.focus || e.discussion || e.submitter)
+          .filter((e: any) => e.wins || e.blockers || e.focus || e.discussion)
           .sort((a: any, b: any) => b.week_date.localeCompare(a.week_date))
           .slice(0, 12)
         setAgendaEntries(withNarrative)
@@ -412,7 +412,9 @@ export default function InsightsTab() {
                 <div key={e.id || e.week_date} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #F1F5F9' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: NAVY, fontFamily: 'Georgia, serif' }}>
-                      {e.week_label || shortFmt(e.week_date)}
+                      {(e.week_label && !e.week_label.startsWith('{') && !e.week_label.startsWith('['))
+                        ? e.week_label
+                        : shortFmt(e.week_date)}
                     </span>
                     {e.submitter && <span style={{ fontSize: 11, fontWeight: 600, color: BLUE, background: '#EFF4FF', padding: '2px 10px', borderRadius: 20 }}>{e.submitter}</span>}
                   </div>
