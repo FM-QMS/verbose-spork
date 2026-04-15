@@ -30,7 +30,7 @@ const EXCHANGE_COLORS: Record<ExchangeStatus, { bg: string; text: string; dot: s
   'Need Product Replacement':{ bg: '#FFFBEB', text: '#92400E', dot: '#F59E0B' },
 }
 
-type TabId = 'returns' | 'exchanges' | 'queue' | 'history'
+type TabId = 'returns' | 'exchanges' | 'queue' | 'history' | 'refund'
 
 function StatusBadge({ status, colors }: { status: string; colors: { bg: string; text: string; dot: string } }) {
   return (
@@ -379,11 +379,12 @@ function NotesModal({ record, onClose, onSave }: { record: ReturnRecord; onClose
 
 // ── Records Table ────────────────────────────────────────────
 function RecordsTable({
-  records, loading, onEdit, onNotes, onComplete, showComplete = false, isQueue = false
+  records, loading, onEdit, onNotes, onRefund, onComplete, showComplete = false, isQueue = false
 }: {
   records: ReturnRecord[]; loading: boolean;
   onEdit: (r: ReturnRecord) => void;
   onNotes?: (r: ReturnRecord) => void;
+  onRefund?: (r: ReturnRecord) => void;
   onComplete?: (r: ReturnRecord) => void;
   showComplete?: boolean;
   isQueue?: boolean;
@@ -473,6 +474,12 @@ function RecordsTable({
                       style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', cursor: 'pointer' }}>
                       Update
                     </button>
+                    {onRefund && (
+                      <button onClick={() => onRefund(r)}
+                        style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#FFF5F5', color: '#BE123C', border: '1px solid #FECDD3', cursor: 'pointer' }}>
+                        Refund
+                      </button>
+                    )}
                     {showComplete && onComplete && (
                       <button onClick={() => onComplete(r)}
                         style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', cursor: 'pointer' }}>
@@ -516,6 +523,7 @@ export default function LogisticsApp() {
     if (tab === 'exchanges') url += 'type=exchange&completed=false'
     if (tab === 'queue')     url += 'queue=true'
     if (tab === 'history')   url += 'completed=true'
+    if (tab === 'refund')    url += 'in_refund=true&completed=false'
 
     const res  = await fetch(url)
     const data = await res.json()
@@ -550,6 +558,12 @@ export default function LogisticsApp() {
     await handleUpdate(record.id, { completed: true })
   }
 
+  async function handleRefund(record: ReturnRecord) {
+    if (!confirm(`Move this ${record.type} for patient ${record.patient_id} to the Refund tab?`)) return
+    await handleUpdate(record.id, { in_refund: true })
+    showToast('Moved to Refunds')
+  }
+
   async function handleLabelSent(record: ReturnRecord) {
     await handleUpdate(record.id, {
       shipment_status: 'Return Label Mailed',
@@ -571,6 +585,7 @@ export default function LogisticsApp() {
     { id: 'returns',   label: 'Returns',       desc: 'Active refund requests' },
     { id: 'exchanges', label: 'Exchanges',      desc: 'Active exchange requests' },
     { id: 'queue',     label: 'Label Queue',    desc: 'Labels needed · daily task' },
+    { id: 'refund',    label: 'Refunds',         desc: 'Orders moved to refund' },
     { id: 'history',   label: 'Order History',  desc: 'Completed transactions' },
   ]
 
@@ -649,7 +664,8 @@ export default function LogisticsApp() {
             loading={loading}
             onEdit={setEditRecord}
             onNotes={setNotesRecord}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' ? handleComplete : undefined)}
+            onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' && tab !== 'refund' ? handleComplete : undefined)}
+            onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
             showComplete={tab === 'returns' || tab === 'exchanges'}
             isQueue={tab === 'queue'}
           />

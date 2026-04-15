@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
 
     if (type)      query = query.eq('type', type)
     if (completed !== null) query = query.eq('completed', completed === 'true')
+    const inRefund  = searchParams.get('in_refund')
+    if (inRefund !== null) query = query.eq('in_refund', inRefund === 'true')
     if (queue === 'true') {
       query = query
         .eq('completed', false)
