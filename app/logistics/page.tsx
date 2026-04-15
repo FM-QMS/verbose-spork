@@ -785,12 +785,11 @@ export default function LogisticsApp() {
             loading={loading}
             onEdit={setEditRecord}
             onNotes={setNotesRecord}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' && tab !== 'refund' ? handleComplete : undefined)}
+            onComplete={tab === 'queue' ? handleLabelSent : (tab === 'refund' || tab !== 'history' ? handleComplete : undefined)}
             onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
             showComplete={tab === 'returns' || tab === 'exchanges'}
             isQueue={tab === 'queue'}
             isRefund={tab === 'refund'}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab === 'refund' ? handleComplete : (tab !== 'history' ? handleComplete : undefined))}
           />
         </div>
 
