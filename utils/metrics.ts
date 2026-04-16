@@ -55,7 +55,8 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'chase_do_cgm',    label: 'Unfilled DO — CGM' },
       { id: 'chase_do_compression', label: 'Unfilled DO — Leg Compression' },
       { id: 'chase_priorauth', label: 'Prior Auth Medical Records' },
-      { id: 'chase_snfhospice', label: 'SNF/Hospice Follow-up' },
+      { id: 'chase_snfhospice',    label: 'SNF/Hospice Follow-up' },
+      { id: 'chase_pendingcgmrx', label: 'CGM - Pending Completed RX' },
     ],
     advocates: [
       { name: 'Julie',  initials: 'JU' },
