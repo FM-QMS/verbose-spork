@@ -63,7 +63,7 @@ function DeptPill({ deptKey }: { deptKey: string }) {
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={className}
-      style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '20px 22px', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '20px 24px', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       {children}
     </div>
   )
@@ -291,19 +291,42 @@ export default function Home() {
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F6FB', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
+    <div className="checkins-app" style={{ minHeight: '100vh', background: '#F4F6FB', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
+      <style>{`
+        .checkins-app input[type="text"], .checkins-app input[type="date"], .checkins-app input[type="number"], .checkins-app textarea, .checkins-app select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 8px;
+          font-size: 13px;
+          color: #334155;
+          background: #fff;
+          box-sizing: border-box;
+          font-family: 'DM Sans', 'Segoe UI', sans-serif;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .checkins-app input:focus, .checkins-app textarea:focus, .checkins-app select:focus {
+          border-color: #6B8CC7;
+        }
+        .checkins-app textarea {
+          resize: vertical;
+          min-height: 80px;
+          line-height: 1.6;
+        }
+      `}</style>
 
       {/* top bar */}
       <div style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #2A3F6B 100%)`, boxShadow: '0 2px 16px rgba(28,43,74,0.3)' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <a href="/" style={{ textDecoration: 'none' }}>
-              <img src={LOGO_SRC} alt="Quantum Medical" style={{ height: 38, objectFit: 'contain' }} />
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+              <img src={LOGO_SRC} alt="Quantum Medical" style={{ height: 34, objectFit: 'contain' }} />
             </a>
             <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.2)' }} />
             <div>
-              <h1 style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, fontFamily: 'Georgia, serif' }}>Team Metrics</h1>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: 0 }}>Weekly Check-in · Operations</p>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.2, fontFamily: 'Georgia, serif' }}>Team Metrics</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Weekly Check-in · Operations</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -318,7 +341,7 @@ export default function Home() {
         </div>
 
         {/* nav */}
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'flex', gap: 0, overflowX: 'auto', alignItems: 'stretch' }}>
             {TAB_GROUPS.map((group, gi) => {
               const groupActive = group.tabs.some(t => t.id === tab)
@@ -387,7 +410,7 @@ export default function Home() {
       </div>
 
       {/* content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px' }}>
 
         {/* ── ADVOCATE FORM ── */}
         {tab === 'adv-form' && (
@@ -410,11 +433,11 @@ export default function Home() {
             </div>
             <Card>
               <SectionLabel>Submission info</SectionLabel>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                 <div>
                   <FieldLabel>Week of</FieldLabel>
                   <input type="date" value={advDate} onChange={e => setAdvDate(e.target.value)} />
-                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#1565C0' }}>{getWeekLabel(advDate)}</p>
+                  <p style={{ fontSize: 12, marginTop: 6, fontWeight: 600, color: BLUE }}>{getWeekLabel(advDate)}</p>
                 </div>
                 <div>
                   <FieldLabel>Submitted by</FieldLabel>
@@ -444,11 +467,11 @@ export default function Home() {
 
             {ADV_DEPT_KEYS.filter(d => d === activeDept).map(d => (
               <Card key={d}>
-                <div className="flex items-center gap-2 mb-5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>Report metrics</p>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }} style={{ color: '#64748B' }}>Report metrics</p>
                 <MetricTable
                   metrics={ADV_DEPTS[d].metrics}
                   values={advMetrics[d] || {}}
@@ -458,18 +481,18 @@ export default function Home() {
                   }
                 />
                 <div className="my-5" style={{ borderTop: '1px solid #F1F5F9' }} />
-                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>Phone activity — per advocate</p>
-                <div className="space-y-3">
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }} style={{ color: '#64748B' }}>Phone activity — per advocate</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {ADV_DEPTS[d].advocates.map((a, i) => {
                     const av = (advAdvocates[d] || [])[i] || { name: a.name, out: '', in: '', talk: '', tasks: '' }
                     return (
                       <div key={a.name} className="rounded-lg p-3.5" style={{ background: DEPT_BG[d] + '60', border: `1px solid ${DEPT_BORDER[d]}` }}>
-                        <div className="flex items-center gap-2 mb-3">
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
                             style={{ background: DEPT_COLORS[d], color: 'white' }}>{a.initials}</div>
                           <span className="text-sm font-semibold" style={{ color: '#1E293B' }}>{a.name}</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }} style={{ marginBottom: 8 }}>
                           {(['out','in','talk','tasks'] as const).map((field, fi) => (
                             <div key={field}>
                               <FieldLabel>{['Outbound','Inbound','Talk time','Tasks open'][fi]}</FieldLabel>
@@ -483,7 +506,7 @@ export default function Home() {
                             </div>
                           ))}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                           {(['pagevisits','notescreated'] as const).map((field, fi) => (
                             <div key={field}>
                               <FieldLabel>{['# of Page Visits','# of Notes Created'][fi]}</FieldLabel>
@@ -506,7 +529,7 @@ export default function Home() {
 
             <Card>
               <SectionLabel>Weekly narrative</SectionLabel>
-              <div className="space-y-4">
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <FieldLabel>Submitted by</FieldLabel>
                   <input type="text" placeholder="Your name" value={advSubmitter} onChange={e => setAdvSubmitter(e.target.value)} />
@@ -530,7 +553,7 @@ export default function Home() {
               </div>
             </Card>
 
-            <div className="flex justify-end items-center gap-3 mt-2">
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 8 }}>
               <button onClick={() => clearForm('advocate')}
                 className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors"
                 style={{ color: '#64748B', border: '1.5px solid #E2E8F0', background: '#F8FAFC', fontSize: 13, fontWeight: 600, borderRadius: 8 }}>
@@ -568,11 +591,11 @@ export default function Home() {
             </div>
             <Card>
               <SectionLabel>Submission info</SectionLabel>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                 <div>
                   <FieldLabel>Week of</FieldLabel>
                   <input type="date" value={fitDate} onChange={e => setFitDate(e.target.value)} />
-                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#1565C0' }}>{getWeekLabel(fitDate)}</p>
+                  <p style={{ fontSize: 12, marginTop: 6, fontWeight: 600, color: BLUE }}>{getWeekLabel(fitDate)}</p>
                 </div>
                 <div>
                   <FieldLabel>Submitted by</FieldLabel>
@@ -585,7 +608,7 @@ export default function Home() {
 
             {FITTER_DEPT_KEYS.map(d => (
               <Card key={d}>
-                <div className="flex items-center gap-2 mb-5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
@@ -602,7 +625,7 @@ export default function Home() {
 
             <Card>
               <SectionLabel>Weekly narrative</SectionLabel>
-              <div className="space-y-4">
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <FieldLabel>Submitted by</FieldLabel>
                   <input type="text" placeholder="Your name" value={fitSubmitter} onChange={e => setFitSubmitter(e.target.value)} />
@@ -626,7 +649,7 @@ export default function Home() {
               </div>
             </Card>
 
-            <div className="flex justify-end items-center gap-3 mt-2">
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 8 }}>
               <button onClick={() => clearForm('fitter')}
                 className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors"
                 style={{ color: '#64748B', border: '1.5px solid #E2E8F0', background: '#F8FAFC', fontSize: 13, fontWeight: 600, borderRadius: 8 }}>
@@ -651,7 +674,7 @@ export default function Home() {
           <div>
             {ADV_DEPT_KEYS.map(d => (
               <Card key={d}>
-                <div className="flex items-center gap-2 mb-5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
@@ -672,7 +695,7 @@ export default function Home() {
           <div>
             {FITTER_DEPT_KEYS.map(d => (
               <Card key={d}>
-                <div className="flex items-center gap-2 mb-5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
@@ -706,7 +729,7 @@ export default function Home() {
       </div>
 
       {/* footer */}
-      <div className="max-w-4xl mx-auto px-6 py-6 text-center">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px', textAlign: 'center' }}>
         <p className="text-xs" style={{ color: '#94A3B8' }}>
           © {new Date().getFullYear()} QMS Weekly Check-in · Internal use only
         </p>
