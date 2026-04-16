@@ -184,11 +184,12 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
 }
 
 // ── Edit Modal ───────────────────────────────────────────────
-function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose: () => void; onSave: (id: string, data: any) => void }) {
+function EditModal({ record, onClose, onSave, isRefundTab = false }: { record: ReturnRecord; onClose: () => void; onSave: (id: string, data: any) => void; isRefundTab?: boolean }) {
   const [form, setForm] = useState({
     shipment_status:      record.shipment_status,
     refund_status:        record.refund_status        || '',
     exchange_status:      record.exchange_status      || '',
+    refund_tab_status:    (record as any).refund_tab_status || 'Refund Initiated',
     updated_product:      record.updated_product      || '',
     date_return_received: record.date_return_received || '',
     date_label_mailed:    record.date_label_mailed    || '',
@@ -200,13 +201,20 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
 
   async function handleSave() {
     setSaving(true)
-    await onSave(record.id, {
+    const updates: any = {
       ...form,
       refund_status:   form.refund_status   || null,
       exchange_status: form.exchange_status || null,
       date_return_received: form.date_return_received || null,
       date_label_mailed:    form.date_label_mailed    || null,
-    })
+    }
+    // If refund complete, also mark as completed → moves to Order History
+    if (isRefundTab && (form as any).refund_tab_status === 'Refund Complete') {
+      updates.completed    = true
+      updates.completed_at = new Date().toISOString()
+      updates.date_completed = new Date().toISOString().slice(0, 10)
+    }
+    await onSave(record.id, updates)
     setSaving(false)
   }
 
@@ -232,13 +240,25 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
             </select>
           </div>
 
-          {record.type === 'return' && (
+          {record.type === 'return' && !isRefundTab && (
             <div>
               <label style={labelStyle}>Return Status</label>
               <select style={inputStyle} value={form.refund_status} onChange={e => set('refund_status', e.target.value)}>
                 <option value="">— Select —</option>
                 {REFUND_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+          )}
+          {isRefundTab && (
+            <div>
+              <label style={labelStyle}>Refund Status</label>
+              <select style={inputStyle} value={(form as any).refund_tab_status} onChange={e => set('refund_tab_status', e.target.value)}>
+                <option value="Refund Initiated">Refund Initiated</option>
+                <option value="Refund Complete">Refund Complete</option>
+              </select>
+              {(form as any).refund_tab_status === 'Refund Complete' && (
+                <p style={{ fontSize: 11, color: '#6D28D9', marginTop: 5, fontWeight: 600 }}>✓ This will move the record to Order History on save.</p>
+              )}
             </div>
           )}
 
@@ -749,15 +769,14 @@ export default function LogisticsApp() {
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 2 }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ padding: '10px 20px', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, cursor: 'pointer', border: 'none', outline: 'none', borderRadius: '8px 8px 0 0', transition: 'all 0.15s', whiteSpace: 'nowrap',
+              style={{ padding: '10px 20px', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, cursor: 'pointer', border: 'none', outline: 'none', borderRadius: '8px 8px 0 0', transition: 'all 0.15s',
                 background: tab === t.id ? '#F4F6FB' : 'transparent',
                 color: tab === t.id ? NAVY : 'rgba(255,255,255,0.75)',
               }}>
               {t.label}
-              {t.id === 'queue' && tab !== 'queue' && (() => {
-                const n = records.filter(r => r.shipment_status === 'Return Label Needed' && !r.completed).length
-                return n > 0 ? <span style={{ marginLeft: 6, background: PINK, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>{n}</span> : null
-              })()}
+              {t.id === 'queue' && records.length > 0 && tab !== 'queue' && (
+                <span style={{ marginLeft: 6, background: PINK, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>{records.filter(r => r.shipment_status === 'Return Label Needed').length || ''}</span>
+              )}
             </button>
           ))}
         </div>
@@ -787,12 +806,11 @@ export default function LogisticsApp() {
             loading={loading}
             onEdit={setEditRecord}
             onNotes={setNotesRecord}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' && tab !== 'refund' ? handleComplete : undefined)}
+            onComplete={tab === 'queue' ? handleLabelSent : (tab === 'refund' || tab !== 'history' ? handleComplete : undefined)}
             onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
             showComplete={tab === 'returns' || tab === 'exchanges'}
             isQueue={tab === 'queue'}
             isRefund={tab === 'refund'}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab === 'refund' ? handleComplete : (tab !== 'history' ? handleComplete : undefined))}
           />
         </div>
 
@@ -808,7 +826,7 @@ export default function LogisticsApp() {
       {refundRecord && <RefundModal record={refundRecord} onClose={() => setRefundRecord(null)} onSave={handleRefundSave} />}
       {notesRecord && <NotesModal record={notesRecord} onClose={() => setNotesRecord(null)} onSave={handleNoteSave} />}
       {newModal && <NewRecordModal type={newModal} onClose={() => setNewModal(null)} onSave={handleCreate} />}
-      {editRecord && <EditModal record={editRecord} onClose={() => setEditRecord(null)} onSave={handleUpdate} />}
+      {editRecord && <EditModal record={editRecord} onClose={() => setEditRecord(null)} onSave={handleUpdate} isRefundTab={tab === 'refund'} />}
 
       {/* Toast */}
       {toast && (
