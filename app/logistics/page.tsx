@@ -90,19 +90,19 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{labelStyle}}>Patient ID *</label>
-              <input style={{inputStyle}} value={form.patient_id} onChange={e => set('patient_id', e.target.value)} placeholder="e.g. PT-00123" />
+              <label style={labelStyle}>Patient ID *</label>
+              <input style={inputStyle} value={form.patient_id} onChange={e => set('patient_id', e.target.value)} placeholder="e.g. PT-00123" />
             </div>
             <div>
-              <label style={{labelStyle}}>PO Number</label>
-              <input style={{inputStyle}} value={form.po_number} onChange={e => set('po_number', e.target.value)} placeholder="e.g. PO-456789" />
+              <label style={labelStyle}>PO Number</label>
+              <input style={inputStyle} value={form.po_number} onChange={e => set('po_number', e.target.value)} placeholder="e.g. PO-456789" />
             </div>
           </div>
 
           <div>
-            <label style={{labelStyle}}>Product</label>
+            <label style={labelStyle}>Product</label>
             <div style={{ position: 'relative' }}>
-              <input style={{inputStyle}} value={form.product} onChange={e => set('product', e.target.value)} placeholder="e.g. CGM Device, Diabetic Shoes, Compression Garment" />
+              <input style={inputStyle} value={form.product} onChange={e => set('product', e.target.value)} placeholder="e.g. CGM Device, Diabetic Shoes, Compression Garment" />
               {form.hcpcs && (
                 <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 700, color: '#6B8CC7', background: '#EFF4FF', padding: '2px 8px', borderRadius: 10, pointerEvents: 'none' }}>
                   {form.hcpcs}
@@ -112,23 +112,23 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
           </div>
 
           <div>
-            <label style={{labelStyle}}>HCPCS Code</label>
-            <input style={{inputStyle}} value={form.hcpcs} onChange={e => set('hcpcs', e.target.value)} placeholder="e.g. A5500, K0001" />
+            <label style={labelStyle}>HCPCS Code</label>
+            <input style={inputStyle} value={form.hcpcs} onChange={e => set('hcpcs', e.target.value)} placeholder="e.g. A5500, K0001" />
           </div>
 
           <div>
-            <label style={{labelStyle}}>Manufacturer / Model</label>
-            <input style={{inputStyle}} value={form.manufacturer} onChange={e => set('manufacturer', e.target.value)} placeholder="e.g. Dexcom G7" />
+            <label style={labelStyle}>Manufacturer / Model</label>
+            <input style={inputStyle} value={form.manufacturer} onChange={e => set('manufacturer', e.target.value)} placeholder="e.g. Dexcom G7" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{labelStyle}}>Initiate Date</label>
-              <input type="date" style={{inputStyle}} value={form.initiated_date} onChange={e => set('initiated_date', e.target.value)} />
+              <label style={labelStyle}>Initiate Date</label>
+              <input type="date" style={inputStyle} value={form.initiated_date} onChange={e => set('initiated_date', e.target.value)} />
             </div>
             <div>
-              <label style={{labelStyle}}>Shipment Status</label>
-              <select style={{inputStyle}} value={form.shipment_status} onChange={e => set('shipment_status', e.target.value as ShipmentStatus)}>
+              <label style={labelStyle}>Shipment Status</label>
+              <select style={inputStyle} value={form.shipment_status} onChange={e => set('shipment_status', e.target.value as ShipmentStatus)}>
                 {SHIPMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -136,8 +136,8 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
 
           {type === 'return' && (
             <div>
-              <label style={{labelStyle}}>Return Status</label>
-              <select style={{inputStyle}} value={form.refund_status} onChange={e => set('refund_status', e.target.value as RefundStatus)}>
+              <label style={labelStyle}>Return Status</label>
+              <select style={inputStyle} value={form.refund_status} onChange={e => set('refund_status', e.target.value as RefundStatus)}>
                 <option value="">— Select —</option>
                 {REFUND_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -147,26 +147,26 @@ function NewRecordModal({ type, onClose, onSave }: { type: 'return' | 'exchange'
           {type === 'exchange' && (
             <>
               <div>
-                <label style={{labelStyle}}>Exchange Status</label>
-                <select style={{inputStyle}} value={form.exchange_status} onChange={e => set('exchange_status', e.target.value as ExchangeStatus)}>
+                <label style={labelStyle}>Exchange Status</label>
+                <select style={inputStyle} value={form.exchange_status} onChange={e => set('exchange_status', e.target.value as ExchangeStatus)}>
                   <option value="">— Select —</option>
                   {EXCHANGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{labelStyle}}>Updated / Replacement Product</label>
-                <input style={{inputStyle}} value={form.updated_product} onChange={e => set('updated_product', e.target.value)} placeholder="e.g. Dexcom G7 Gen 2" />
+                <label style={labelStyle}>Updated / Replacement Product</label>
+                <input style={inputStyle} value={form.updated_product} onChange={e => set('updated_product', e.target.value)} placeholder="e.g. Dexcom G7 Gen 2" />
               </div>
             </>
           )}
 
           <div>
-            <label style={{labelStyle}}>Advocate</label>
-            <input style={{inputStyle}} value={form.advocate} onChange={e => set('advocate', e.target.value)} placeholder="Your name" />
+            <label style={labelStyle}>Advocate</label>
+            <input style={inputStyle} value={form.advocate} onChange={e => set('advocate', e.target.value)} placeholder="Your name" />
           </div>
 
           <div>
-            <label style={{labelStyle}}>Notes</label>
+            <label style={labelStyle}>Notes</label>
             <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Any additional context…" />
           </div>
         </div>
@@ -226,16 +226,16 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
 
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{labelStyle}}>Shipment Status</label>
-            <select style={{inputStyle}} value={form.shipment_status} onChange={e => set('shipment_status', e.target.value)}>
+            <label style={labelStyle}>Shipment Status</label>
+            <select style={inputStyle} value={form.shipment_status} onChange={e => set('shipment_status', e.target.value)}>
               {SHIPMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           {record.type === 'return' && (
             <div>
-              <label style={{labelStyle}}>Return Status</label>
-              <select style={{inputStyle}} value={form.refund_status} onChange={e => set('refund_status', e.target.value)}>
+              <label style={labelStyle}>Return Status</label>
+              <select style={inputStyle} value={form.refund_status} onChange={e => set('refund_status', e.target.value)}>
                 <option value="">— Select —</option>
                 {REFUND_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -245,37 +245,37 @@ function EditModal({ record, onClose, onSave }: { record: ReturnRecord; onClose:
           {record.type === 'exchange' && (
             <>
               <div>
-                <label style={{labelStyle}}>Exchange Status</label>
-                <select style={{inputStyle}} value={form.exchange_status} onChange={e => set('exchange_status', e.target.value)}>
+                <label style={labelStyle}>Exchange Status</label>
+                <select style={inputStyle} value={form.exchange_status} onChange={e => set('exchange_status', e.target.value)}>
                   <option value="">— Select —</option>
                   {EXCHANGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{labelStyle}}>Updated / Replacement Product</label>
-                <input style={{inputStyle}} value={form.updated_product} onChange={e => set('updated_product', e.target.value)} />
+                <label style={labelStyle}>Updated / Replacement Product</label>
+                <input style={inputStyle} value={form.updated_product} onChange={e => set('updated_product', e.target.value)} />
               </div>
             </>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{labelStyle}}>Label Mailed Date</label>
-              <input type="date" style={{inputStyle}} value={form.date_label_mailed} onChange={e => set('date_label_mailed', e.target.value)} />
+              <label style={labelStyle}>Label Mailed Date</label>
+              <input type="date" style={inputStyle} value={form.date_label_mailed} onChange={e => set('date_label_mailed', e.target.value)} />
             </div>
             <div>
-              <label style={{labelStyle}}>Return Received Date</label>
-              <input type="date" style={{inputStyle}} value={form.date_return_received} onChange={e => set('date_return_received', e.target.value)} />
+              <label style={labelStyle}>Return Received Date</label>
+              <input type="date" style={inputStyle} value={form.date_return_received} onChange={e => set('date_return_received', e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label style={{labelStyle}}>Shipping Coordinator</label>
-            <input style={{inputStyle}} value={form.shipping_coordinator} onChange={e => set('shipping_coordinator', e.target.value)} placeholder="Coordinator name" />
+            <label style={labelStyle}>Shipping Coordinator</label>
+            <input style={inputStyle} value={form.shipping_coordinator} onChange={e => set('shipping_coordinator', e.target.value)} placeholder="Coordinator name" />
           </div>
 
           <div>
-            <label style={{labelStyle}}>Notes</label>
+            <label style={labelStyle}>Notes</label>
             <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }} value={form.notes} onChange={e => set('notes', e.target.value)} />
           </div>
         </div>
@@ -414,21 +414,21 @@ function RefundModal({ record, onClose, onSave }: { record: ReturnRecord; onClos
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{labelStyle}}>Request #</label>
-              <input style={{inputStyle}} value={form.request_number} onChange={e => set('request_number', e.target.value)} placeholder="e.g. REQ-001" />
+              <label style={labelStyle}>Request #</label>
+              <input style={inputStyle} value={form.request_number} onChange={e => set('request_number', e.target.value)} placeholder="e.g. REQ-001" />
             </div>
             <div>
-              <label style={{labelStyle}}>Date of Service</label>
-              <input type="date" style={{inputStyle}} value={form.date_of_service} onChange={e => set('date_of_service', e.target.value)} />
+              <label style={labelStyle}>Date of Service</label>
+              <input type="date" style={inputStyle} value={form.date_of_service} onChange={e => set('date_of_service', e.target.value)} />
             </div>
           </div>
           <div>
-            <label style={{labelStyle}}>Product Type</label>
-            <input style={{inputStyle}} value={form.product_type} onChange={e => set('product_type', e.target.value)} placeholder="e.g. Leg Compression, CGM Device" />
+            <label style={labelStyle}>Product Type</label>
+            <input style={inputStyle} value={form.product_type} onChange={e => set('product_type', e.target.value)} placeholder="e.g. Leg Compression, CGM Device" />
           </div>
           <div>
-            <label style={{labelStyle}}>Refund Status</label>
-            <select style={{inputStyle}} value={form.refund_tab_status} onChange={e => set('refund_tab_status', e.target.value)}>
+            <label style={labelStyle}>Refund Status</label>
+            <select style={inputStyle} value={form.refund_tab_status} onChange={e => set('refund_tab_status', e.target.value)}>
               <option value="Refund Initiated">Refund Initiated</option>
               <option value="Refund Complete">Refund Complete</option>
             </select>
@@ -483,27 +483,27 @@ function RecordsTable({
         <thead>
           <tr>
             {isRefund ? (<>
-              <th style={{thStyle}}>Date</th>
-              <th style={{thStyle}}>Patient ID</th>
-              <th style={{thStyle}}>Request #</th>
-              <th style={{thStyle}}>Date of Service</th>
-              <th style={{thStyle}}>Product Type</th>
-              <th style={{thStyle}}>Refund Status</th>
-              <th style={{thStyle}}>Notes</th>
-              <th style={{thStyle}}>Actions</th>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Patient ID</th>
+              <th style={thStyle}>Request #</th>
+              <th style={thStyle}>Date of Service</th>
+              <th style={thStyle}>Product Type</th>
+              <th style={thStyle}>Refund Status</th>
+              <th style={thStyle}>Notes</th>
+              <th style={thStyle}>Actions</th>
             </>) : (<>
-              <th style={{thStyle}}>Date</th>
-              <th style={{thStyle}}>Patient ID</th>
-              <th style={{thStyle}}>PO #</th>
-              <th style={{thStyle}}>Product</th>
-              {!isQueue && <th style={{thStyle}}>Manufacturer</th>}
-              <th style={{thStyle}}>Shipment Status</th>
-              <th style={{thStyle}}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Return Status'}</th>
-              {records[0]?.type === 'exchange' && <th style={{thStyle}}>Replacement</th>}
-              <th style={{thStyle}}>Advocate</th>
-              {isQueue && <th style={{thStyle}}>Coordinator</th>}
-              <th style={{thStyle}}>Notes</th>
-              <th style={{thStyle}}>Actions</th>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Patient ID</th>
+              <th style={thStyle}>PO #</th>
+              <th style={thStyle}>Product</th>
+              {!isQueue && <th style={thStyle}>Manufacturer</th>}
+              <th style={thStyle}>Shipment Status</th>
+              <th style={thStyle}>{records[0]?.type === 'exchange' ? 'Exchange Status' : 'Return Status'}</th>
+              {records[0]?.type === 'exchange' && <th style={thStyle}>Replacement</th>}
+              <th style={thStyle}>Advocate</th>
+              {isQueue && <th style={thStyle}>Coordinator</th>}
+              <th style={thStyle}>Notes</th>
+              <th style={thStyle}>Actions</th>
             </>)}
           </tr>
         </thead>
@@ -519,18 +519,18 @@ function RecordsTable({
 
             if (isRefund) return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
-                <td style={{tdStyle}}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
-                <td style={{tdStyle}}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
-                <td style={{tdStyle}}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).request_number || '—'}</span></td>
-                <td style={{tdStyle}}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).date_of_service ? fmt((r as any).date_of_service) : '—'}</span></td>
-                <td style={{tdStyle}}><span style={{ fontSize: 12 }}>{(r as any).product_type || r.product || '—'}</span></td>
-                <td style={{tdStyle}}>{refundStatusColor ? <StatusBadge status={(r as any).refund_tab_status} colors={refundStatusColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
-                <td style={{tdStyle}}>
+                <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).request_number || '—'}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).date_of_service ? fmt((r as any).date_of_service) : '—'}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12 }}>{(r as any).product_type || r.product || '—'}</span></td>
+                <td style={tdStyle}>{refundStatusColor ? <StatusBadge status={(r as any).refund_tab_status} colors={refundStatusColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
+                <td style={tdStyle}>
                   <button onClick={() => onNotes?.(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: r.notes ? '#6B8CC7' : '#94A3B8', fontWeight: r.notes ? 600 : 400, textDecoration: r.notes ? 'underline' : 'none', textDecorationStyle: 'dotted' as any }}>
                     {r.notes ? 'View / add' : '+ Add note'}
                   </button>
                 </td>
-                <td style={{tdStyle}}>
+                <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => onEdit(r)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', cursor: 'pointer' }}>Update</button>
                     {onComplete && <button onClick={() => onComplete(r)} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', cursor: 'pointer' }}>Complete ✓</button>}
@@ -541,9 +541,9 @@ function RecordsTable({
 
             return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
-                <td style={{tdStyle}}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
-                <td style={{tdStyle}}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
-                <td style={{tdStyle}}><span style={{ color: '#64748B', fontSize: 12 }}>{r.po_number || '—'}</span></td>
+                <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{r.po_number || '—'}</span></td>
                 <td style={{ ...tdStyle, maxWidth: 160 }}>
                   {r.product ? (
                     <div style={{ position: 'relative', display: 'inline-block' }}
@@ -564,20 +564,20 @@ function RecordsTable({
                     </div>
                   ) : <span style={{ color: '#CBD5E1' }}>—</span>}
                 </td>
-                {!isQueue && <td style={{tdStyle}}><span style={{ fontSize: 12, color: '#64748B' }}>{r.manufacturer || '—'}</span></td>}
-                <td style={{tdStyle}}><StatusBadge status={r.shipment_status} colors={shipColor} /></td>
-                <td style={{tdStyle}}>{secStatus && secColor ? <StatusBadge status={secStatus} colors={secColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
-                {r.type === 'exchange' && <td style={{tdStyle}}><span style={{ fontSize: 12, color: '#64748B' }}>{r.updated_product || '—'}</span></td>}
-                <td style={{tdStyle}}><span style={{ fontSize: 12 }}>{r.advocate || '—'}</span></td>
-                {isQueue && <td style={{tdStyle}}><span style={{ fontSize: 12 }}>{r.shipping_coordinator || '—'}</span></td>}
-                <td style={{tdStyle}}>
+                {!isQueue && <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{r.manufacturer || '—'}</span></td>}
+                <td style={tdStyle}><StatusBadge status={r.shipment_status} colors={shipColor} /></td>
+                <td style={tdStyle}>{secStatus && secColor ? <StatusBadge status={secStatus} colors={secColor} /> : <span style={{ color: '#CBD5E1' }}>—</span>}</td>
+                {r.type === 'exchange' && <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{r.updated_product || '—'}</span></td>}
+                <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.advocate || '—'}</span></td>
+                {isQueue && <td style={tdStyle}><span style={{ fontSize: 12 }}>{r.shipping_coordinator || '—'}</span></td>}
+                <td style={tdStyle}>
                   <button
                     onClick={() => onNotes?.(r)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: r.notes ? '#6B8CC7' : '#94A3B8', fontWeight: r.notes ? 600 : 400, textDecoration: r.notes ? 'underline' : 'none', textDecorationStyle: 'dotted' as any }}>
                     {r.notes ? 'View / add' : '+ Add note'}
                   </button>
                 </td>
-                <td style={{tdStyle}}>
+                <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button onClick={() => onEdit(r)}
                       style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', cursor: 'pointer' }}>
