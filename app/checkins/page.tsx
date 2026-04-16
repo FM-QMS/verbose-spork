@@ -471,7 +471,7 @@ export default function Home() {
                   <DeptPill deptKey={d} />
                   <div className="flex-1 h-px" style={{ background: DEPT_BORDER[d] }} />
                 </div>
-                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }} style={{ color: '#64748B' }}>Report metrics</p>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }}>Report metrics</p>
                 <MetricTable
                   metrics={ADV_DEPTS[d].metrics}
                   values={advMetrics[d] || {}}
@@ -481,7 +481,7 @@ export default function Home() {
                   }
                 />
                 <div className="my-5" style={{ borderTop: '1px solid #F1F5F9' }} />
-                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }} style={{ color: '#64748B' }}>Phone activity — per advocate</p>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12, color: "#64748B" }}>Phone activity — per advocate</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {ADV_DEPTS[d].advocates.map((a, i) => {
                     const av = (advAdvocates[d] || [])[i] || { name: a.name, out: '', in: '', talk: '', tasks: '' }
@@ -492,7 +492,7 @@ export default function Home() {
                             style={{ background: DEPT_COLORS[d], color: 'white' }}>{a.initials}</div>
                           <span className="text-sm font-semibold" style={{ color: '#1E293B' }}>{a.name}</span>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }} style={{ marginBottom: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
                           {(['out','in','talk','tasks'] as const).map((field, fi) => (
                             <div key={field}>
                               <FieldLabel>{['Outbound','Inbound','Talk time','Tasks open'][fi]}</FieldLabel>
