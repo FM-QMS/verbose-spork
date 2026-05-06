@@ -4,6 +4,7 @@ import MetricTable from '@/components/MetricTable'
 import TrendChart from '@/components/TrendChart'
 import UploadButton from '@/components/UploadButton'
 import InsightsTab from '@/components/InsightsTab'
+import MonthlyTab from '@/components/MonthlyTab'
 import HistoryTable from '@/components/HistoryTable'
 import { ADV_DEPTS, FITTER_DEPTS, ADV_DEPT_KEYS, FITTER_DEPT_KEYS } from '@/utils/metrics'
 
@@ -21,7 +22,7 @@ function getWeekLabel(dateStr: string) {
   return `Week of ${fmt(mon)} – ${fmt(fri)}, ${fri.getFullYear()}`
 }
 
-type TabId = 'adv-form' | 'fitter-form' | 'adv-trends' | 'fitter-trends' | 'adv-history' | 'fitter-history' | 'insights'
+type TabId = 'adv-form' | 'fitter-form' | 'adv-trends' | 'fitter-trends' | 'adv-history' | 'fitter-history' | 'insights' | 'monthly'
 
 const TAB_GROUPS = [
   { label: 'Check-in', tabs: [
@@ -38,6 +39,7 @@ const TAB_GROUPS = [
   ]},
   { label: 'Insights', tabs: [
     { id: 'insights' as TabId, label: 'Weekly report' },
+    { id: 'monthly' as TabId, label: 'Monthly' },
   ]},
 ]
 
@@ -678,6 +680,11 @@ export default function Home() {
       {/* ── INSIGHTS ── */}
         {tab === 'insights' && (
           <InsightsTab />
+        )}
+
+      {/* ── MONTHLY ── */}
+        {tab === 'monthly' && (
+          <MonthlyTab advEntries={advEntries} fitterEntries={fitterEntries} />
         )}
 
       </div>
