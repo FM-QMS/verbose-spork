@@ -12,14 +12,15 @@ const DEPT_BG: Record<string, string> = {
 }
 
 // Pastel palette matching the Weekly Narrative card colors.
-// Each card + matching trend chart line uses the same fg color.
+// Indexes 0–3 are used for the metric KPI cards; index 4 (teal) is the Phone Activity color.
 const KPI_PALETTE = [
   { bg: '#E3F2FD', fg: '#1565C0' }, // blue
   { bg: '#E8F5E9', fg: '#2E7D32' }, // green
   { bg: '#FFF3E0', fg: '#E65100' }, // amber
   { bg: '#F3E5F5', fg: '#6A1B9A' }, // purple
-  { bg: '#E0F2F1', fg: '#00695C' }, // teal — used for Phone Activity
+  { bg: '#E0F2F1', fg: '#00695C' }, // teal — Phone Activity
 ]
+const PHONE_PALETTE = KPI_PALETTE[4]
 
 const PHONE_METRIC_ID = '__phone_activity__'
 
@@ -174,19 +175,24 @@ function EmptyState({ month }: { month: string }) {
   )
 }
 
+// Helper for inline delta rendering — used by both KpiCard and PhoneActivityCard
+function deltaInfo(curr: number, prev: number, dir?: 'up' | 'down') {
+  const diff = curr - prev
+  let color = '#94A3B8'
+  if (diff !== 0) {
+    if (dir === 'up')   color = diff > 0 ? '#16A34A' : '#DC2626'
+    if (dir === 'down') color = diff < 0 ? '#16A34A' : '#DC2626'
+  }
+  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '–'
+  const pct   = prev === 0 ? null : (diff / prev) * 100
+  return { diff, color, arrow, pct }
+}
+
 // KPI card — styled to match Weekly Narrative cards
 function KpiCard({ label, value, prevValue, dir, palette }: {
   label: string; value: number; prevValue: number; dir?: 'up' | 'down'; palette: { bg: string; fg: string };
 }) {
-  const diff = value - prevValue
-  const pct  = prevValue === 0 ? null : ((diff / prevValue) * 100)
-
-  let deltaColor = '#94A3B8'
-  if (diff !== 0) {
-    if (dir === 'up')   deltaColor = diff > 0 ? '#16A34A' : '#DC2626'
-    if (dir === 'down') deltaColor = diff < 0 ? '#16A34A' : '#DC2626'
-  }
-  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '–'
+  const { diff, color, arrow, pct } = deltaInfo(value, prevValue, dir)
 
   return (
     <div style={{
@@ -196,7 +202,6 @@ function KpiCard({ label, value, prevValue, dir, palette }: {
       borderRadius: 10,
       padding: '14px 16px',
     }}>
-      {/* Header — uppercase colored label with small color marker */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
         fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em',
@@ -206,21 +211,132 @@ function KpiCard({ label, value, prevValue, dir, palette }: {
         {label}
       </div>
 
-      {/* Value */}
       <div style={{ fontSize: 26, fontWeight: 700, color: '#1C2B4A', lineHeight: 1.05 }}>
         {value.toLocaleString()}
       </div>
 
-      {/* Delta */}
       <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-        <span style={{ color: deltaColor }}>{arrow}</span>
-        <span style={{ color: deltaColor }}>{diff > 0 ? '+' : ''}{diff.toLocaleString()}</span>
+        <span style={{ color }}>{arrow}</span>
+        <span style={{ color }}>{diff > 0 ? '+' : ''}{diff.toLocaleString()}</span>
         {pct !== null && (
           <span style={{ color: '#64748B', fontWeight: 500 }}>
             ({pct > 0 ? '+' : ''}{pct.toFixed(1)}%)
           </span>
         )}
         <span style={{ color: '#94A3B8', marginLeft: 2 }}>vs prev</span>
+      </div>
+    </div>
+  )
+}
+
+// Phone Activity card — full-width, with team total + per-advocate breakdown
+function PhoneActivityCard({ total, prevTotal, perUser, deptColor }: {
+  total: number; prevTotal: number;
+  perUser: { name: string; initials: string; score: number; prevScore: number }[];
+  deptColor: string;
+}) {
+  const { diff, color, arrow, pct } = deltaInfo(total, prevTotal, 'up')
+  const sorted = [...perUser].sort((a, b) => b.score - a.score)
+
+  return (
+    <div style={{
+      background: PHONE_PALETTE.bg,
+      borderRadius: 10,
+      padding: '16px 18px',
+      flex: '1 1 100%',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14,
+        fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em',
+        color: PHONE_PALETTE.fg,
+      }}>
+        <span style={{ width: 8, height: 8, borderRadius: 2, background: PHONE_PALETTE.fg, flexShrink: 0 }} />
+        Phone Activity
+      </div>
+
+      {/* Body — team total on left, per-user breakdown on right */}
+      <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+
+        {/* Team total + formula description */}
+        <div style={{ flex: '0 0 220px', minWidth: 200 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', marginBottom: 4 }}>
+            Team Total
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#1C2B4A', lineHeight: 1.05 }}>
+            {total.toLocaleString()}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+            <span style={{ color }}>{arrow}</span>
+            <span style={{ color }}>{diff > 0 ? '+' : ''}{diff.toLocaleString()}</span>
+            {pct !== null && (
+              <span style={{ color: '#64748B', fontWeight: 500 }}>
+                ({pct > 0 ? '+' : ''}{pct.toFixed(1)}%)
+              </span>
+            )}
+            <span style={{ color: '#94A3B8', marginLeft: 2 }}>vs prev</span>
+          </div>
+
+          {/* Description of how the score is calculated */}
+          <div style={{
+            marginTop: 14,
+            paddingTop: 10,
+            borderTop: '1px solid rgba(0,105,92,0.15)',
+            fontSize: 11,
+            color: '#475569',
+            lineHeight: 1.55,
+          }}>
+            <span style={{ fontWeight: 700, color: PHONE_PALETTE.fg }}>How this is calculated:</span>{' '}
+            outbound calls + inbound calls + tasks + notes, summed across every advocate in this department for the month.
+          </div>
+        </div>
+
+        {/* Per-advocate breakdown */}
+        <div style={{ flex: '1 1 280px', minWidth: 280 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B', marginBottom: 8 }}>
+            Per Advocate
+          </div>
+          {sorted.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#94A3B8', padding: '8px 0' }}>No advocates configured.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {sorted.map(u => {
+                const u_diff  = u.score - u.prevScore
+                const u_color = u_diff > 0 ? '#16A34A' : u_diff < 0 ? '#DC2626' : '#94A3B8'
+                const u_arrow = u_diff > 0 ? '▲' : u_diff < 0 ? '▼' : '–'
+                return (
+                  <div key={u.name} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.55)',
+                  }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%',
+                      background: deptColor, color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, flexShrink: 0,
+                    }}>
+                      {u.initials}
+                    </div>
+                    <span style={{
+                      flex: 1, fontSize: 12.5, color: '#1C2B4A', fontWeight: 500,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {u.name}
+                    </span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1C2B4A', minWidth: 56, textAlign: 'right' }}>
+                      {u.score.toLocaleString()}
+                    </span>
+                    <span style={{ fontSize: 11, color: u_color, fontWeight: 700, minWidth: 60, textAlign: 'right' }}>
+                      {u_diff !== 0 ? `${u_arrow} ${u_diff > 0 ? '+' : ''}${u_diff.toLocaleString()}` : '—'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -351,10 +467,23 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
   const currM  = useMemo(() => aggregateMetrics(currRows, dept), [currRows, dept])
   const prevM  = useMemo(() => aggregateMetrics(prevRows, dept), [prevRows, dept])
   const currPh = useMemo(() => aggregatePhone(currRows, dept),   [currRows, dept])
+  const prevPh = useMemo(() => aggregatePhone(prevRows, dept),   [prevRows, dept])
 
   // Phone Activity combined totals (advocate-only)
   const currPhoneTotal = useMemo(() => aggregatePhoneCombined(currRows, dept), [currRows, dept])
   const prevPhoneTotal = useMemo(() => aggregatePhoneCombined(prevRows, dept), [prevRows, dept])
+
+  // Phone Activity per-advocate combined scores (current + previous month)
+  const phonePerUser = useMemo(() => {
+    if (team !== 'advocate') return []
+    return (ADV_DEPTS[dept]?.advocates || []).map((adv: any) => {
+      const c = currPh[adv.name] || { out: 0, inp: 0, tasks: 0, nc: 0 }
+      const p = prevPh[adv.name] || { out: 0, inp: 0, tasks: 0, nc: 0 }
+      const score     = (c.out || 0) + (c.inp || 0) + (c.tasks || 0) + (c.nc || 0)
+      const prevScore = (p.out || 0) + (p.inp || 0) + (p.tasks || 0) + (p.nc || 0)
+      return { name: adv.name, initials: adv.initials, score, prevScore }
+    })
+  }, [team, dept, currPh, prevPh])
 
   const allYMs   = useMemo(() => { const s = new Set<string>(); entries.forEach(e => e.week_date && s.add(weekToYM(e.week_date))); return Array.from(s).sort() }, [entries])
   const hasPrev  = allYMs.some(m => m < ym)
@@ -363,27 +492,22 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
   const deptDef  = (depts as any)[dept]
   const wkCount  = currRows.length
 
-  // Top 4 metrics from dept config (reorder in metrics.ts to change priority)
+  // Top 4 metrics from dept config
   const topMetrics = useMemo(() => (deptDef?.metrics || []).slice(0, 4), [deptDef])
-
-  // Build the unified KPI card list — metrics + phone activity (advocate only)
-  const kpiCards = useMemo(() => {
-    const cards: { id: string; label: string; dir?: 'up' | 'down'; isPhone: boolean }[] =
-      topMetrics.map((m: any) => ({ id: m.id, label: m.label, dir: m.dir, isPhone: false }))
-    if (team === 'advocate') {
-      cards.push({ id: PHONE_METRIC_ID, label: 'Phone Activity', dir: 'up', isPhone: true })
-    }
-    return cards
-  }, [topMetrics, team])
 
   // 6 months of trend data (for chart)
   const trendMonths = useMemo(() => buildTrend(entries, dept, ym, 6), [entries, dept, ym])
 
-  // Lines for chart match the cards 1:1 (same order, same colors)
-  const trendLines = useMemo(
-    () => kpiCards.map((c, i) => ({ id: c.id, label: c.label, color: KPI_PALETTE[i % KPI_PALETTE.length].fg })),
-    [kpiCards]
-  )
+  // Chart lines: 4 metrics + Phone Activity (advocate only)
+  const trendLines = useMemo(() => {
+    const lines = topMetrics.map((m: any, i: number) => ({
+      id: m.id, label: m.label, color: KPI_PALETTE[i % 4].fg,
+    }))
+    if (team === 'advocate') {
+      lines.push({ id: PHONE_METRIC_ID, label: 'Phone Activity', color: PHONE_PALETTE.fg })
+    }
+    return lines
+  }, [topMetrics, team])
 
   const TH: React.CSSProperties = { textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8', whiteSpace: 'nowrap' }
   const TD: React.CSSProperties = { padding: '10px 10px', textAlign: 'right', color: '#64748B' }
@@ -442,33 +566,41 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
         ))}
       </div>
 
-      {/* ── KPI cards + 6-month trend (TOPMOST DATA SECTION) ── */}
+      {/* ── KPI cards + Phone Activity + 6-month trend (TOPMOST DATA SECTION) ── */}
       <Card>
         <SectionLabel>Monthly Key Metrics — {fmtMonth(ym)}</SectionLabel>
 
-        {kpiCards.length === 0 ? (
+        {topMetrics.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8', fontSize: 13 }}>
             No metrics defined for this department.
           </div>
         ) : (
           <>
-            {/* KPI card row */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-              {kpiCards.map((c, idx) => {
-                const value     = c.isPhone ? currPhoneTotal : (currM[c.id] || 0)
-                const prevValue = c.isPhone ? prevPhoneTotal : (prevM[c.id] || 0)
-                return (
-                  <KpiCard
-                    key={c.id}
-                    label={c.label}
-                    value={value}
-                    prevValue={prevValue}
-                    dir={c.dir}
-                    palette={KPI_PALETTE[idx % KPI_PALETTE.length]}
-                  />
-                )
-              })}
+            {/* Row of metric KPI cards */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: team === 'advocate' ? 16 : 24 }}>
+              {topMetrics.map((m: any, idx: number) => (
+                <KpiCard
+                  key={m.id}
+                  label={m.label}
+                  value={currM[m.id] || 0}
+                  prevValue={prevM[m.id] || 0}
+                  dir={m.dir}
+                  palette={KPI_PALETTE[idx % 4]}
+                />
+              ))}
             </div>
+
+            {/* Phone Activity card (advocate only) */}
+            {team === 'advocate' && (
+              <div style={{ marginBottom: 24 }}>
+                <PhoneActivityCard
+                  total={currPhoneTotal}
+                  prevTotal={prevPhoneTotal}
+                  perUser={phonePerUser}
+                  deptColor={DEPT_COLORS[dept]}
+                />
+              </div>
+            )}
 
             {/* 6-month trend chart */}
             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 18 }}>
