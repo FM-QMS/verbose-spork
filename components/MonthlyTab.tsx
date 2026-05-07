@@ -11,6 +11,9 @@ const DEPT_BG: Record<string, string> = {
   cgm: '#E3F0FF', shoe: '#E0F2F1', chase: '#FFF3E0', pfp: '#EDE7F6', fitter: '#FBE9E7',
 }
 
+// Distinct color palette for trend chart lines
+const LINE_COLORS = ['#1565C0', '#E65100', '#7C3AED', '#0F766E']
+
 // ── Helpers ──────────────────────────────────────────────────
 function weekToYM(weekDate: string) {
   const d = new Date(weekDate + 'T12:00:00')
@@ -20,6 +23,11 @@ function weekToYM(weekDate: string) {
 function fmtMonth(ym: string) {
   const [y, m] = ym.split('-')
   return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function fmtMonthShort(ym: string) {
+  const [, m] = ym.split('-')
+  return new Date(2024, Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'short' })
 }
 
 function shiftMonth(ym: string, delta: number) {
@@ -67,6 +75,24 @@ function aggregatePhone(entries: any[], deptKey: string) {
     }
   }
   return t
+}
+
+// Build last N months of metric totals for trend chart
+function buildTrend(entries: any[], deptKey: string, currYM: string, monthsBack = 6) {
+  const months: { ym: string; values: Record<string, number> }[] = []
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const targetYM = shiftMonth(currYM, -i)
+    const monthRows = entries.filter(e => e.week_date && weekToYM(e.week_date) === targetYM)
+    months.push({ ym: targetYM, values: aggregateMetrics(monthRows, deptKey) })
+  }
+  return months
+}
+
+// Round up to a "nice" axis max
+function niceCeil(n: number): number {
+  if (n <= 1) return 1
+  const mag = Math.pow(10, Math.floor(Math.log10(n)))
+  return Math.ceil(n / mag) * mag
 }
 
 // ── Sub-components ────────────────────────────────────────────
@@ -124,6 +150,159 @@ function EmptyState({ month }: { month: string }) {
   )
 }
 
+// KPI card — large monthly total + delta vs previous month
+function KpiCard({ label, value, prevValue, dir, accent, lineColor }: {
+  label: string; value: number; prevValue: number; dir?: 'up' | 'down'; accent: string; lineColor: string;
+}) {
+  const diff = value - prevValue
+  const pct  = prevValue === 0 ? null : ((diff / prevValue) * 100)
+
+  let deltaColor = '#94A3B8'
+  if (diff !== 0) {
+    if (dir === 'up')   deltaColor = diff > 0 ? '#16A34A' : '#DC2626'
+    if (dir === 'down') deltaColor = diff < 0 ? '#16A34A' : '#DC2626'
+  }
+  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '–'
+
+  return (
+    <div style={{
+      flex: '1 1 180px', minWidth: 180,
+      background: '#fff',
+      border: '1px solid #E2E8F0',
+      borderLeft: `3px solid ${accent}`,
+      borderRadius: 12,
+      padding: '14px 16px',
+      position: 'relative',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 2, background: lineColor, flexShrink: 0 }} />
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8' }}>
+          {label}
+        </span>
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: '#1C2B4A', lineHeight: 1.05, fontFamily: 'Georgia,serif' }}>
+        {value.toLocaleString()}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        <span style={{ color: deltaColor }}>{arrow}</span>
+        <span style={{ color: deltaColor }}>{diff > 0 ? '+' : ''}{diff.toLocaleString()}</span>
+        {pct !== null && (
+          <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+            ({pct > 0 ? '+' : ''}{pct.toFixed(1)}%)
+          </span>
+        )}
+        <span style={{ color: '#CBD5E1', marginLeft: 2 }}>vs prev</span>
+      </div>
+    </div>
+  )
+}
+
+// 6-month multi-line trend chart (pure SVG, no chart library)
+function TrendChart({ months, metrics, currYM }: {
+  months: { ym: string; values: Record<string, number> }[];
+  metrics: any[];
+  currYM: string;
+}) {
+  const W = 720, H = 240
+  const PAD_L = 48, PAD_R = 16, PAD_T = 16, PAD_B = 32
+  const innerW = W - PAD_L - PAD_R
+  const innerH = H - PAD_T - PAD_B
+
+  const allValues = months.flatMap(m => metrics.map(mt => m.values[mt.id] || 0))
+  const rawMax    = Math.max(...allValues, 0)
+  const niceMax   = niceCeil(rawMax || 1)
+
+  const xStep = innerW / Math.max(months.length - 1, 1)
+  const getX  = (i: number) => PAD_L + i * xStep
+  const getY  = (v: number) => PAD_T + innerH - (v / niceMax) * innerH
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => f * niceMax)
+
+  const lines = metrics.map((m, idx) => ({
+    metric: m,
+    color: LINE_COLORS[idx % LINE_COLORS.length],
+    points: months.map((mo, i) => `${getX(i)},${getY(mo.values[m.id] || 0)}`).join(' '),
+  }))
+
+  const hasAnyData = rawMax > 0
+
+  return (
+    <div>
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 8 }}>
+        {lines.map(l => (
+          <div key={l.metric.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ width: 14, height: 3, borderRadius: 2, background: l.color }} />
+            <span style={{ fontWeight: 500, color: '#1C2B4A' }}>{l.metric.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        {/* Grid lines */}
+        {yTicks.map((t, i) => (
+          <line key={i} x1={PAD_L} y1={getY(t)} x2={W - PAD_R} y2={getY(t)} stroke="#F1F5F9" strokeWidth="1" />
+        ))}
+
+        {/* Y-axis labels */}
+        {yTicks.map((t, i) => (
+          <text key={i} x={PAD_L - 8} y={getY(t) + 4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="'DM Sans','Segoe UI',sans-serif">
+            {Math.round(t).toLocaleString()}
+          </text>
+        ))}
+
+        {/* X-axis labels */}
+        {months.map((mo, i) => {
+          const isCurr = mo.ym === currYM
+          return (
+            <text key={mo.ym}
+              x={getX(i)} y={H - PAD_B + 18}
+              textAnchor="middle"
+              fontSize="11"
+              fill={isCurr ? '#1C2B4A' : '#94A3B8'}
+              fontWeight={isCurr ? 700 : 400}
+              fontFamily="'DM Sans','Segoe UI',sans-serif">
+              {fmtMonthShort(mo.ym)}
+            </text>
+          )
+        })}
+
+        {/* Empty state */}
+        {!hasAnyData && (
+          <text x={W / 2} y={H / 2} textAnchor="middle" fontSize="12" fill="#94A3B8" fontFamily="'DM Sans','Segoe UI',sans-serif">
+            No data in this 6-month window
+          </text>
+        )}
+
+        {/* Lines + dots */}
+        {hasAnyData && lines.map(l => (
+          <g key={l.metric.id}>
+            <polyline
+              points={l.points}
+              fill="none"
+              stroke={l.color}
+              strokeWidth="2.25"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            {months.map((mo, i) => (
+              <circle key={i}
+                cx={getX(i)}
+                cy={getY(mo.values[l.metric.id] || 0)}
+                r="3.5"
+                fill="#fff"
+                stroke={l.color}
+                strokeWidth="2"
+              />
+            ))}
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────
 export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: any[]; fitterEntries: any[] }) {
   const nowYM = (() => {
@@ -153,6 +332,12 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
 
   const deptDef  = (depts as any)[dept]
   const wkCount  = currRows.length
+
+  // Top KPI metrics — first 4 from dept config (rearrange in metrics.ts to change priority)
+  const topMetrics = useMemo(() => (deptDef?.metrics || []).slice(0, 4), [deptDef])
+
+  // 6-month trend data for the top metrics
+  const trendMonths = useMemo(() => buildTrend(entries, dept, ym, 6), [entries, dept, ym])
 
   const TH: React.CSSProperties = { textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8', whiteSpace: 'nowrap' }
   const TD: React.CSSProperties = { padding: '10px 10px', textAlign: 'right', color: '#64748B' }
@@ -212,6 +397,42 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
           </button>
         ))}
       </div>
+
+      {/* ── KPI cards + 6-month trend (TOPMOST DATA SECTION) ── */}
+      <Card>
+        <SectionLabel>Key Metrics — {fmtMonth(ym)}</SectionLabel>
+
+        {topMetrics.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8', fontSize: 13 }}>
+            No metrics defined for this department.
+          </div>
+        ) : (
+          <>
+            {/* KPI card row */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+              {topMetrics.map((m: any, idx: number) => (
+                <KpiCard
+                  key={m.id}
+                  label={m.label}
+                  value={currM[m.id] || 0}
+                  prevValue={prevM[m.id] || 0}
+                  dir={m.dir}
+                  accent={DEPT_COLORS[dept]}
+                  lineColor={LINE_COLORS[idx % LINE_COLORS.length]}
+                />
+              ))}
+            </div>
+
+            {/* 6-month trend chart */}
+            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 18 }}>
+              <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8', margin: '0 0 12px' }}>
+                6-Month Trend
+              </p>
+              <TrendChart months={trendMonths} metrics={topMetrics} currYM={ym} />
+            </div>
+          </>
+        )}
+      </Card>
 
       {/* ── Report Metrics ── */}
       <Card>
