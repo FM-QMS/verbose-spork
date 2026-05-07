@@ -11,8 +11,17 @@ const DEPT_BG: Record<string, string> = {
   cgm: '#E3F0FF', shoe: '#E0F2F1', chase: '#FFF3E0', pfp: '#EDE7F6', fitter: '#FBE9E7',
 }
 
-// Distinct color palette for trend chart lines
-const LINE_COLORS = ['#1565C0', '#E65100', '#7C3AED', '#0F766E']
+// Pastel palette matching the Weekly Narrative card colors.
+// Each card + matching trend chart line uses the same fg color.
+const KPI_PALETTE = [
+  { bg: '#E3F2FD', fg: '#1565C0' }, // blue
+  { bg: '#E8F5E9', fg: '#2E7D32' }, // green
+  { bg: '#FFF3E0', fg: '#E65100' }, // amber
+  { bg: '#F3E5F5', fg: '#6A1B9A' }, // purple
+  { bg: '#E0F2F1', fg: '#00695C' }, // teal — used for Phone Activity
+]
+
+const PHONE_METRIC_ID = '__phone_activity__'
 
 // ── Helpers ──────────────────────────────────────────────────
 function weekToYM(weekDate: string) {
@@ -77,18 +86,33 @@ function aggregatePhone(entries: any[], deptKey: string) {
   return t
 }
 
-// Build last N months of metric totals for trend chart
+// Combined dept-wide activity score: outbound + inbound + tasks + notes
+function aggregatePhoneCombined(entries: any[], deptKey: string): number {
+  let total = 0
+  for (const e of entries) {
+    for (const adv of (e.advocates?.[deptKey] || [])) {
+      total += (Number(adv.out) || 0) + (Number(adv.in) || 0)
+             + (Number(adv.tasks) || 0) + (Number(adv.notescreated) || 0)
+    }
+  }
+  return total
+}
+
+// Build last N months of metric + phone totals for trend chart
 function buildTrend(entries: any[], deptKey: string, currYM: string, monthsBack = 6) {
-  const months: { ym: string; values: Record<string, number> }[] = []
+  const months: { ym: string; values: Record<string, number>; phoneTotal: number }[] = []
   for (let i = monthsBack - 1; i >= 0; i--) {
     const targetYM = shiftMonth(currYM, -i)
     const monthRows = entries.filter(e => e.week_date && weekToYM(e.week_date) === targetYM)
-    months.push({ ym: targetYM, values: aggregateMetrics(monthRows, deptKey) })
+    months.push({
+      ym: targetYM,
+      values: aggregateMetrics(monthRows, deptKey),
+      phoneTotal: aggregatePhoneCombined(monthRows, deptKey),
+    })
   }
   return months
 }
 
-// Round up to a "nice" axis max
 function niceCeil(n: number): number {
   if (n <= 1) return 1
   const mag = Math.pow(10, Math.floor(Math.log10(n)))
@@ -150,9 +174,9 @@ function EmptyState({ month }: { month: string }) {
   )
 }
 
-// KPI card — large monthly total + delta vs previous month
-function KpiCard({ label, value, prevValue, dir, accent, lineColor }: {
-  label: string; value: number; prevValue: number; dir?: 'up' | 'down'; accent: string; lineColor: string;
+// KPI card — styled to match Weekly Narrative cards
+function KpiCard({ label, value, prevValue, dir, palette }: {
+  label: string; value: number; prevValue: number; dir?: 'up' | 'down'; palette: { bg: string; fg: string };
 }) {
   const diff = value - prevValue
   const pct  = prevValue === 0 ? null : ((diff / prevValue) * 100)
@@ -166,41 +190,46 @@ function KpiCard({ label, value, prevValue, dir, accent, lineColor }: {
 
   return (
     <div style={{
-      flex: '1 1 180px', minWidth: 180,
-      background: '#fff',
-      border: '1px solid #E2E8F0',
-      borderLeft: `3px solid ${accent}`,
-      borderRadius: 12,
+      flex: '1 1 180px',
+      minWidth: 180,
+      background: palette.bg,
+      borderRadius: 10,
       padding: '14px 16px',
-      position: 'relative',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 2, background: lineColor, flexShrink: 0 }} />
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8' }}>
-          {label}
-        </span>
+      {/* Header — uppercase colored label with small color marker */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
+        fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em',
+        color: palette.fg,
+      }}>
+        <span style={{ width: 8, height: 8, borderRadius: 2, background: palette.fg, flexShrink: 0 }} />
+        {label}
       </div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: '#1C2B4A', lineHeight: 1.05, fontFamily: 'Georgia,serif' }}>
+
+      {/* Value */}
+      <div style={{ fontSize: 26, fontWeight: 700, color: '#1C2B4A', lineHeight: 1.05 }}>
         {value.toLocaleString()}
       </div>
+
+      {/* Delta */}
       <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
         <span style={{ color: deltaColor }}>{arrow}</span>
         <span style={{ color: deltaColor }}>{diff > 0 ? '+' : ''}{diff.toLocaleString()}</span>
         {pct !== null && (
-          <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+          <span style={{ color: '#64748B', fontWeight: 500 }}>
             ({pct > 0 ? '+' : ''}{pct.toFixed(1)}%)
           </span>
         )}
-        <span style={{ color: '#CBD5E1', marginLeft: 2 }}>vs prev</span>
+        <span style={{ color: '#94A3B8', marginLeft: 2 }}>vs prev</span>
       </div>
     </div>
   )
 }
 
-// 6-month multi-line trend chart (pure SVG, no chart library)
-function TrendChart({ months, metrics, currYM }: {
-  months: { ym: string; values: Record<string, number> }[];
-  metrics: any[];
+// 6-month multi-line trend chart (pure SVG)
+function TrendChart({ months, lines, currYM }: {
+  months: { ym: string; values: Record<string, number>; phoneTotal: number }[];
+  lines: { id: string; label: string; color: string }[];
   currYM: string;
 }) {
   const W = 720, H = 240
@@ -208,7 +237,10 @@ function TrendChart({ months, metrics, currYM }: {
   const innerW = W - PAD_L - PAD_R
   const innerH = H - PAD_T - PAD_B
 
-  const allValues = months.flatMap(m => metrics.map(mt => m.values[mt.id] || 0))
+  const getValue = (mo: typeof months[0], id: string) =>
+    id === PHONE_METRIC_ID ? mo.phoneTotal : (mo.values[id] || 0)
+
+  const allValues = months.flatMap(m => lines.map(l => getValue(m, l.id)))
   const rawMax    = Math.max(...allValues, 0)
   const niceMax   = niceCeil(rawMax || 1)
 
@@ -218,10 +250,9 @@ function TrendChart({ months, metrics, currYM }: {
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => f * niceMax)
 
-  const lines = metrics.map((m, idx) => ({
-    metric: m,
-    color: LINE_COLORS[idx % LINE_COLORS.length],
-    points: months.map((mo, i) => `${getX(i)},${getY(mo.values[m.id] || 0)}`).join(' '),
+  const polylines = lines.map(l => ({
+    line: l,
+    points: months.map((mo, i) => `${getX(i)},${getY(getValue(mo, l.id))}`).join(' '),
   }))
 
   const hasAnyData = rawMax > 0
@@ -231,28 +262,25 @@ function TrendChart({ months, metrics, currYM }: {
       {/* Legend */}
       <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 8 }}>
         {lines.map(l => (
-          <div key={l.metric.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             <span style={{ width: 14, height: 3, borderRadius: 2, background: l.color }} />
-            <span style={{ fontWeight: 500, color: '#1C2B4A' }}>{l.metric.label}</span>
+            <span style={{ fontWeight: 500, color: '#1C2B4A' }}>{l.label}</span>
           </div>
         ))}
       </div>
 
       {/* Chart */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        {/* Grid lines */}
         {yTicks.map((t, i) => (
           <line key={i} x1={PAD_L} y1={getY(t)} x2={W - PAD_R} y2={getY(t)} stroke="#F1F5F9" strokeWidth="1" />
         ))}
 
-        {/* Y-axis labels */}
         {yTicks.map((t, i) => (
           <text key={i} x={PAD_L - 8} y={getY(t) + 4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="'DM Sans','Segoe UI',sans-serif">
             {Math.round(t).toLocaleString()}
           </text>
         ))}
 
-        {/* X-axis labels */}
         {months.map((mo, i) => {
           const isCurr = mo.ym === currYM
           return (
@@ -268,20 +296,18 @@ function TrendChart({ months, metrics, currYM }: {
           )
         })}
 
-        {/* Empty state */}
         {!hasAnyData && (
           <text x={W / 2} y={H / 2} textAnchor="middle" fontSize="12" fill="#94A3B8" fontFamily="'DM Sans','Segoe UI',sans-serif">
             No data in this 6-month window
           </text>
         )}
 
-        {/* Lines + dots */}
-        {hasAnyData && lines.map(l => (
-          <g key={l.metric.id}>
+        {hasAnyData && polylines.map(p => (
+          <g key={p.line.id}>
             <polyline
-              points={l.points}
+              points={p.points}
               fill="none"
-              stroke={l.color}
+              stroke={p.line.color}
               strokeWidth="2.25"
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -289,10 +315,10 @@ function TrendChart({ months, metrics, currYM }: {
             {months.map((mo, i) => (
               <circle key={i}
                 cx={getX(i)}
-                cy={getY(mo.values[l.metric.id] || 0)}
+                cy={getY(getValue(mo, p.line.id))}
                 r="3.5"
                 fill="#fff"
-                stroke={l.color}
+                stroke={p.line.color}
                 strokeWidth="2"
               />
             ))}
@@ -326,6 +352,10 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
   const prevM  = useMemo(() => aggregateMetrics(prevRows, dept), [prevRows, dept])
   const currPh = useMemo(() => aggregatePhone(currRows, dept),   [currRows, dept])
 
+  // Phone Activity combined totals (advocate-only)
+  const currPhoneTotal = useMemo(() => aggregatePhoneCombined(currRows, dept), [currRows, dept])
+  const prevPhoneTotal = useMemo(() => aggregatePhoneCombined(prevRows, dept), [prevRows, dept])
+
   const allYMs   = useMemo(() => { const s = new Set<string>(); entries.forEach(e => e.week_date && s.add(weekToYM(e.week_date))); return Array.from(s).sort() }, [entries])
   const hasPrev  = allYMs.some(m => m < ym)
   const hasNext  = ym < nowYM
@@ -333,11 +363,27 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
   const deptDef  = (depts as any)[dept]
   const wkCount  = currRows.length
 
-  // Top KPI metrics — first 4 from dept config (rearrange in metrics.ts to change priority)
+  // Top 4 metrics from dept config (reorder in metrics.ts to change priority)
   const topMetrics = useMemo(() => (deptDef?.metrics || []).slice(0, 4), [deptDef])
 
-  // 6-month trend data for the top metrics
+  // Build the unified KPI card list — metrics + phone activity (advocate only)
+  const kpiCards = useMemo(() => {
+    const cards: { id: string; label: string; dir?: 'up' | 'down'; isPhone: boolean }[] =
+      topMetrics.map((m: any) => ({ id: m.id, label: m.label, dir: m.dir, isPhone: false }))
+    if (team === 'advocate') {
+      cards.push({ id: PHONE_METRIC_ID, label: 'Phone Activity', dir: 'up', isPhone: true })
+    }
+    return cards
+  }, [topMetrics, team])
+
+  // 6 months of trend data (for chart)
   const trendMonths = useMemo(() => buildTrend(entries, dept, ym, 6), [entries, dept, ym])
+
+  // Lines for chart match the cards 1:1 (same order, same colors)
+  const trendLines = useMemo(
+    () => kpiCards.map((c, i) => ({ id: c.id, label: c.label, color: KPI_PALETTE[i % KPI_PALETTE.length].fg })),
+    [kpiCards]
+  )
 
   const TH: React.CSSProperties = { textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8', whiteSpace: 'nowrap' }
   const TD: React.CSSProperties = { padding: '10px 10px', textAlign: 'right', color: '#64748B' }
@@ -349,7 +395,6 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
 
-          {/* Month navigation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <NavBtn onClick={() => setYM(shiftMonth(ym, -1))} disabled={!hasPrev}>‹</NavBtn>
             <div style={{ textAlign: 'center', minWidth: 170 }}>
@@ -363,7 +408,6 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
             <NavBtn onClick={() => setYM(shiftMonth(ym, 1))} disabled={!hasNext}>›</NavBtn>
           </div>
 
-          {/* Team toggle */}
           <div style={{ display: 'flex', gap: 4, background: '#F8FAFC', borderRadius: 10, padding: 3, border: '1px solid #E2E8F0' }}>
             {(['advocate', 'fitter'] as TeamType[]).map(t => (
               <button key={t}
@@ -400,9 +444,9 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
 
       {/* ── KPI cards + 6-month trend (TOPMOST DATA SECTION) ── */}
       <Card>
-        <SectionLabel>Key Metrics — {fmtMonth(ym)}</SectionLabel>
+        <SectionLabel>Monthly Key Metrics — {fmtMonth(ym)}</SectionLabel>
 
-        {topMetrics.length === 0 ? (
+        {kpiCards.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8', fontSize: 13 }}>
             No metrics defined for this department.
           </div>
@@ -410,17 +454,20 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
           <>
             {/* KPI card row */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-              {topMetrics.map((m: any, idx: number) => (
-                <KpiCard
-                  key={m.id}
-                  label={m.label}
-                  value={currM[m.id] || 0}
-                  prevValue={prevM[m.id] || 0}
-                  dir={m.dir}
-                  accent={DEPT_COLORS[dept]}
-                  lineColor={LINE_COLORS[idx % LINE_COLORS.length]}
-                />
-              ))}
+              {kpiCards.map((c, idx) => {
+                const value     = c.isPhone ? currPhoneTotal : (currM[c.id] || 0)
+                const prevValue = c.isPhone ? prevPhoneTotal : (prevM[c.id] || 0)
+                return (
+                  <KpiCard
+                    key={c.id}
+                    label={c.label}
+                    value={value}
+                    prevValue={prevValue}
+                    dir={c.dir}
+                    palette={KPI_PALETTE[idx % KPI_PALETTE.length]}
+                  />
+                )
+              })}
             </div>
 
             {/* 6-month trend chart */}
@@ -428,7 +475,7 @@ export default function MonthlyTab({ advEntries, fitterEntries }: { advEntries: 
               <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94A3B8', margin: '0 0 12px' }}>
                 6-Month Trend
               </p>
-              <TrendChart months={trendMonths} metrics={topMetrics} currYM={ym} />
+              <TrendChart months={trendMonths} lines={trendLines} currYM={ym} />
             </div>
           </>
         )}
