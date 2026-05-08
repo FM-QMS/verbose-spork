@@ -63,31 +63,11 @@ function LoginForm() {
       flexDirection: 'column',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
-      {/* ── Top bar: logo + tagline ── */}
+      {/* ── Top bar ── */}
       <header style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '24px 40px', flexWrap: 'wrap', gap: 12,
+        display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+        padding: '24px 40px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${BRAND.blue} 0%, ${BRAND.pink} 100%)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: 20,
-            fontFamily: BRAND.serif,
-          }}>Q</div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: BRAND.navy, lineHeight: 1.1, letterSpacing: '-0.01em' }}>
-              Quantum{' '}
-              <span style={{ color: BRAND.pink, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em' }}>
-                MEDICAL
-              </span>
-            </div>
-            <div style={{ fontSize: 10, color: BRAND.navyMuted, marginTop: 2, letterSpacing: '0.01em' }}>
-              One step closer to healthier living
-            </div>
-          </div>
-        </div>
         <div style={{ fontSize: 12, color: BRAND.navyMuted }}>
           Internal Operations Platform
         </div>
