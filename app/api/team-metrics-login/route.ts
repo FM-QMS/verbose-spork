@@ -13,7 +13,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 function toBase64Url(bytes: ArrayBuffer): string {
-  const b = btoa(String.fromCharCode(...new Uint8Array(bytes)))
+  const arr = new Uint8Array(bytes)
+  let s = ''
+  for (let i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i])
+  const b = btoa(s)
   return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
