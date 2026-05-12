@@ -32,7 +32,30 @@ const EXCHANGE_COLORS: Record<ExchangeStatus, { bg: string; text: string; dot: s
   'Need Product Replacement':{ bg: '#FFFBEB', text: '#92400E', dot: '#F59E0B' },
 }
 
-type TabId = 'returns' | 'exchanges' | 'queue' | 'history' | 'refund'
+type TabId = 'returns' | 'exchanges' | 'queue' | 'history' | 'refund' | 'msm'
+
+// ── MSM Device constants ────────────────────────────────────
+const MSM_PRODUCT_OPTIONS = ['Arm', 'Hand', 'Waist', 'Below Knee', 'Foot', 'Full Leg', 'Thigh'] as const
+type MSMProduct = typeof MSM_PRODUCT_OPTIONS[number]
+type MSMDeviceStatus = 'Pending' | 'Mailed'
+const MSM_DEVICE_STATUSES: MSMDeviceStatus[] = ['Pending', 'Mailed']
+
+const MSM_DEVICE_COLORS: Record<MSMDeviceStatus, { bg: string; text: string; dot: string }> = {
+  'Pending': { bg: '#FFF7ED', text: '#C2410C', dot: '#F97316' },
+  'Mailed':  { bg: '#F0FDF4', text: '#166534', dot: '#22C55E' },
+}
+
+interface MSMDeviceRecord {
+  id: string
+  date: string
+  patient_id: string
+  products: string[]
+  device_status: MSMDeviceStatus
+  date_mailed?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
 
 function StatusBadge({ status, colors }: { status: string; colors: { bg: string; text: string; dot: string } }) {
   return (
@@ -612,6 +635,394 @@ function RecordsTable({
   )
 }
 
+// ── MSM Device: Request Modal ────────────────────────────────
+function RequestMSMModal({ onClose, onSave }: { onClose: () => void; onSave: (data: any) => void }) {
+  const [form, setForm] = useState({
+    patient_id: '',
+    products: [] as string[],
+    device_status: 'Pending' as MSMDeviceStatus,
+    date_mailed: '',
+    notes: '',
+    date: new Date().toISOString().slice(0, 10),
+  })
+  const [saving, setSaving] = useState(false)
+  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }))
+
+  const toggleProduct = (p: string) => {
+    setForm(prev => ({
+      ...prev,
+      products: prev.products.includes(p) ? prev.products.filter(x => x !== p) : [...prev.products, p]
+    }))
+  }
+
+  async function handleSave() {
+    if (!form.patient_id.trim() || form.products.length === 0) return
+    setSaving(true)
+    await onSave({
+      ...form,
+      date_mailed: form.date_mailed || null,
+      notes: form.notes || null,
+    })
+    setSaving(false)
+  }
+
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#1C2B4A', background: '#fff', boxSizing: 'border-box' }
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,40,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: NAVY, margin: 0, fontFamily: 'Georgia, serif' }}>Request MSM Device</h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>Fill in the details below to initiate</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94A3B8', padding: 4 }}>✕</button>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Patient ID *</label>
+              <input style={inputStyle} value={form.patient_id} onChange={e => set('patient_id', e.target.value)} placeholder="e.g. PT-00123" />
+            </div>
+            <div>
+              <label style={labelStyle}>Date</label>
+              <input type="date" style={inputStyle} value={form.date} onChange={e => set('date', e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Product * <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: '#94A3B8' }}>(select one or more)</span></label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {MSM_PRODUCT_OPTIONS.map(p => {
+                const selected = form.products.includes(p)
+                return (
+                  <button key={p} type="button" onClick={() => toggleProduct(p)}
+                    style={{
+                      padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      background: selected ? PINK : '#fff',
+                      color: selected ? '#fff' : '#64748B',
+                      border: `1.5px solid ${selected ? PINK : '#E2E8F0'}`,
+                      transition: 'all 0.15s',
+                    }}>
+                    {selected && <span style={{ marginRight: 5 }}>✓</span>}{p}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Device Status</label>
+              <select style={inputStyle} value={form.device_status} onChange={e => set('device_status', e.target.value as MSMDeviceStatus)}>
+                {MSM_DEVICE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Date Mailed</label>
+              <input type="date" style={inputStyle} value={form.date_mailed} onChange={e => set('date_mailed', e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Notes</label>
+            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Any additional context…" />
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving || !form.patient_id.trim() || form.products.length === 0}
+            style={{ padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg, ${BLUE}, ${NAVY})`, color: '#fff', border: 'none', cursor: 'pointer', opacity: saving || !form.patient_id.trim() || form.products.length === 0 ? 0.6 : 1 }}>
+            {saving ? 'Saving…' : 'Create request'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── MSM Device: Edit Modal ───────────────────────────────────
+function MSMEditModal({ record, onClose, onSave }: { record: MSMDeviceRecord; onClose: () => void; onSave: (id: string, data: any) => void }) {
+  const [form, setForm] = useState({
+    patient_id:    record.patient_id,
+    products:      record.products || [],
+    device_status: record.device_status,
+    date:          record.date,
+    date_mailed:   record.date_mailed || '',
+    notes:         record.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }))
+
+  const toggleProduct = (p: string) => {
+    setForm(prev => ({
+      ...prev,
+      products: prev.products.includes(p) ? prev.products.filter(x => x !== p) : [...prev.products, p]
+    }))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(record.id, {
+      ...form,
+      date_mailed: form.date_mailed || null,
+      notes: form.notes || null,
+    })
+    setSaving(false)
+  }
+
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#1C2B4A', background: '#fff', boxSizing: 'border-box' }
+  const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,40,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: NAVY, margin: 0, fontFamily: 'Georgia, serif' }}>Update MSM Request</h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>Patient {record.patient_id}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94A3B8' }}>✕</button>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Patient ID</label>
+              <input style={inputStyle} value={form.patient_id} onChange={e => set('patient_id', e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Date</label>
+              <input type="date" style={inputStyle} value={form.date} onChange={e => set('date', e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Product <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: '#94A3B8' }}>(select one or more)</span></label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {MSM_PRODUCT_OPTIONS.map(p => {
+                const selected = form.products.includes(p)
+                return (
+                  <button key={p} type="button" onClick={() => toggleProduct(p)}
+                    style={{
+                      padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      background: selected ? PINK : '#fff',
+                      color: selected ? '#fff' : '#64748B',
+                      border: `1.5px solid ${selected ? PINK : '#E2E8F0'}`,
+                      transition: 'all 0.15s',
+                    }}>
+                    {selected && <span style={{ marginRight: 5 }}>✓</span>}{p}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Device Status</label>
+              <select style={inputStyle} value={form.device_status} onChange={e => set('device_status', e.target.value as MSMDeviceStatus)}>
+                {MSM_DEVICE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Date Mailed</label>
+              <input type="date" style={inputStyle} value={form.date_mailed} onChange={e => set('date_mailed', e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Notes</label>
+            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }} value={form.notes} onChange={e => set('notes', e.target.value)} />
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: `linear-gradient(135deg, ${BLUE}, ${NAVY})`, color: '#fff', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── MSM Device: Notes Modal ──────────────────────────────────
+function MSMNotesModal({ record, onClose, onSave }: { record: MSMDeviceRecord; onClose: () => void; onSave: (id: string, notes: string) => void }) {
+  const [newNote, setNewNote] = useState('')
+  const [author, setAuthor] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const existing = record.notes || ''
+
+  async function handleAdd() {
+    if (!newNote.trim()) return
+    setSaving(true)
+    const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    const byLine = author.trim() ? `${author.trim()} · ${timestamp}` : timestamp
+    const appended = existing
+      ? `${existing}\n\n[${byLine}]\n${newNote.trim()}`
+      : `[${byLine}]\n${newNote.trim()}`
+    await onSave(record.id, appended)
+    setNewNote('')
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,40,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0 }}>
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#1C2B4A', margin: 0, fontFamily: 'Georgia, serif' }}>Notes</h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0' }}>
+              Patient {record.patient_id} · MSM Device{record.products?.length ? ` · ${record.products.join(', ')}` : ''}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94A3B8', padding: 4, lineHeight: 1 }}>✕</button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 22px' }}>
+          {existing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {existing.split(/\n\n(?=\[)/).map((entry, i) => {
+                const tsMatch = entry.match(/^\[(.+?)\]\n?/)
+                const ts   = tsMatch ? tsMatch[1] : null
+                const text = tsMatch ? entry.slice(tsMatch[0].length) : entry
+                return (
+                  <div key={i} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 14px' }}>
+                    {ts && <p style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 5px' }}>{ts}</p>}
+                    <p style={{ fontSize: 13, color: '#334155', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{text}</p>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: '#94A3B8' }}>
+              <p style={{ fontSize: 13, margin: 0 }}>No notes yet</p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '14px 22px 18px', borderTop: '1px solid #F1F5F9', flexShrink: 0 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Add note</p>
+          <input
+            value={author}
+            onChange={e => setAuthor(e.target.value)}
+            placeholder="Your name *"
+            style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', boxSizing: 'border-box', marginBottom: 8, fontFamily: 'inherit' }}
+          />
+          <textarea
+            value={newNote}
+            onChange={e => setNewNote(e.target.value)}
+            placeholder="Type a note…"
+            style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', resize: 'vertical', minHeight: 72, boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+            <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}>Close</button>
+            <button onClick={handleAdd} disabled={saving || !newNote.trim() || !author.trim()}
+              style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #6B8CC7, #1C2B4A)', color: '#fff', border: 'none', cursor: 'pointer', opacity: saving || !newNote.trim() ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : 'Add note'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── MSM Device: Records Table ────────────────────────────────
+function MSMTable({
+  records, loading, onEdit, onNotes, onMailed
+}: {
+  records: MSMDeviceRecord[]; loading: boolean;
+  onEdit: (r: MSMDeviceRecord) => void;
+  onNotes: (r: MSMDeviceRecord) => void;
+  onMailed: (r: MSMDeviceRecord) => void;
+}) {
+  if (loading) return (
+    <div style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+      <div style={{ fontSize: 13 }}>Loading…</div>
+    </div>
+  )
+  if (!records.length) return (
+    <div style={{ padding: '3rem', textAlign: 'center' }}>
+      <p style={{ fontSize: 14, color: '#94A3B8', margin: 0 }}>No records found</p>
+    </div>
+  )
+
+  const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', background: '#F8FAFC', borderBottom: '1.5px solid #E2E8F0', whiteSpace: 'nowrap' }
+  const tdStyle: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: '#334155', borderBottom: '1px solid #F1F5F9', verticalAlign: 'middle' }
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+        <thead>
+          <tr>
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Patient ID</th>
+            <th style={thStyle}>Product</th>
+            <th style={thStyle}>Device Status</th>
+            <th style={thStyle}>Date Mailed</th>
+            <th style={thStyle}>Notes</th>
+            <th style={thStyle}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((r, i) => {
+            const statusColor = MSM_DEVICE_COLORS[r.device_status] || { bg: '#F8FAFC', text: '#64748B', dot: '#CBD5E1' }
+            const isMailed = r.device_status === 'Mailed'
+            return (
+              <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
+                <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.date)}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={{ ...tdStyle, maxWidth: 200 }}>
+                  {r.products?.length ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {r.products.map(p => (
+                        <span key={p} style={{ fontSize: 11, fontWeight: 600, color: '#1D4ED8', background: '#EFF6FF', padding: '2px 8px', borderRadius: 10, border: '1px solid #BFDBFE' }}>
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  ) : <span style={{ color: '#CBD5E1' }}>—</span>}
+                </td>
+                <td style={tdStyle}><StatusBadge status={r.device_status} colors={statusColor} /></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{r.date_mailed ? fmt(r.date_mailed) : '—'}</span></td>
+                <td style={tdStyle}>
+                  <button onClick={() => onNotes(r)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, color: r.notes ? '#6B8CC7' : '#94A3B8', fontWeight: r.notes ? 600 : 400, textDecoration: r.notes ? 'underline' : 'none', textDecorationStyle: 'dotted' as any }}>
+                    {r.notes ? 'View / add' : '+ Add note'}
+                  </button>
+                </td>
+                <td style={tdStyle}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button onClick={() => onEdit(r)}
+                      style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', cursor: 'pointer' }}>
+                      Update
+                    </button>
+                    {!isMailed && (
+                      <button onClick={() => onMailed(r)}
+                        style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', cursor: 'pointer' }}>
+                        Device Mailed ✓
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // ── Main App ─────────────────────────────────────────────────
 export default function LogisticsApp() {
   const [tab, setTab]         = useState<TabId>('returns')
@@ -624,6 +1035,14 @@ export default function LogisticsApp() {
   const [search, setSearch]   = useState('')
   const [toast, setToast]     = useState('')
 
+  // MSM Device state
+  const [msmRecords, setMsmRecords] = useState<MSMDeviceRecord[]>([])
+  const [msmLoading, setMsmLoading] = useState(false)
+  const [msmNewOpen, setMsmNewOpen] = useState(false)
+  const [msmEditRecord, setMsmEditRecord] = useState<MSMDeviceRecord | null>(null)
+  const [msmNotesRecord, setMsmNotesRecord] = useState<MSMDeviceRecord | null>(null)
+  const [msmStatusFilter, setMsmStatusFilter] = useState<'all' | MSMDeviceStatus>('Pending')
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const load = useCallback(async () => {
@@ -635,13 +1054,25 @@ export default function LogisticsApp() {
     if (tab === 'history')   url += 'completed=true'
     if (tab === 'refund')    url += 'in_refund=true&completed=false'
 
+    if (tab === 'msm') { setLoading(false); return }
+
     const res  = await fetch(url)
     const data = await res.json()
     setRecords(Array.isArray(data) ? data : [])
     setLoading(false)
   }, [tab])
 
+  const loadMsm = useCallback(async () => {
+    if (tab !== 'msm') return
+    setMsmLoading(true)
+    const res = await fetch('/api/msm-devices')
+    const data = await res.json()
+    setMsmRecords(Array.isArray(data) ? data : [])
+    setMsmLoading(false)
+  }, [tab])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadMsm() }, [loadMsm])
 
   async function handleCreate(data: any) {
     const res = await fetch('/api/returns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
@@ -693,6 +1124,33 @@ export default function LogisticsApp() {
     showToast('Label marked as sent')
   }
 
+  // ── MSM Device handlers ────────────────────────────────────
+  async function handleMsmCreate(data: any) {
+    const res = await fetch('/api/msm-devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    if (res.ok) { showToast('MSM device request created'); setMsmNewOpen(false); loadMsm() }
+    else { const e = await res.json().catch(() => ({ error: 'Unknown' })); showToast('Error: ' + e.error) }
+  }
+
+  async function handleMsmUpdate(id: string, data: any) {
+    const res = await fetch(`/api/msm-devices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    if (res.ok) { showToast('Record updated'); setMsmEditRecord(null); loadMsm() }
+    else { const e = await res.json().catch(() => ({ error: 'Unknown' })); showToast('Error: ' + e.error) }
+  }
+
+  async function handleMsmNoteSave(id: string, notes: string) {
+    await handleMsmUpdate(id, { notes })
+    setMsmNotesRecord(prev => prev ? { ...prev, notes } : null)
+    loadMsm()
+  }
+
+  async function handleMsmMailed(record: MSMDeviceRecord) {
+    if (!confirm(`Mark MSM device for patient ${record.patient_id} as mailed?`)) return
+    await handleMsmUpdate(record.id, {
+      device_status: 'Mailed',
+      date_mailed: new Date().toISOString().slice(0, 10),
+    })
+  }
+
   const filtered = records.filter(r => {
     if (!search) return true
     const q = search.toLowerCase()
@@ -702,12 +1160,21 @@ export default function LogisticsApp() {
       (r.advocate || '').toLowerCase().includes(q)
   })
 
+  const msmFiltered = msmRecords.filter(r => {
+    if (msmStatusFilter !== 'all' && r.device_status !== msmStatusFilter) return false
+    if (!search) return true
+    const q = search.toLowerCase()
+    return r.patient_id.toLowerCase().includes(q) ||
+      (r.products || []).some(p => p.toLowerCase().includes(q))
+  })
+
   const TABS: { id: TabId; label: string; desc: string }[] = [
     { id: 'returns',   label: 'Returns',       desc: 'Active refund requests' },
     { id: 'exchanges', label: 'Exchanges',      desc: 'Active exchange requests' },
     { id: 'queue',     label: 'Label Queue',    desc: 'Labels needed · daily task' },
     { id: 'refund',    label: 'Refunds',         desc: 'Orders moved to refund' },
     { id: 'history',   label: 'Order History',  desc: 'Completed transactions' },
+    { id: 'msm',       label: 'MSM Device',     desc: 'MSM device requests' },
   ]
 
   const activeTab = TABS.find(t => t.id === tab)!
@@ -730,12 +1197,18 @@ export default function LogisticsApp() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 12, color: '#94A3B8' }}>
-              {filtered.length} record{filtered.length !== 1 ? 's' : ''}
+              {tab === 'msm' ? `${msmFiltered.length} record${msmFiltered.length !== 1 ? 's' : ''}` : `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`}
             </span>
             {(tab === 'returns' || tab === 'exchanges') && (
               <button onClick={() => setNewModal(tab === 'returns' ? 'return' : 'exchange')}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: PINK, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(232,104,154,0.3)' }}>
                 <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New {tab === 'returns' ? 'Return' : 'Exchange'}
+              </button>
+            )}
+            {tab === 'msm' && (
+              <button onClick={() => setMsmNewOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: PINK, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(232,104,154,0.3)' }}>
+                <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Request MSM Device
               </button>
             )}
             <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#94A3B8', textDecoration: 'none' }}>
@@ -771,28 +1244,55 @@ export default function LogisticsApp() {
             <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient, PO, product…"
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tab === 'msm' ? 'Search patient, product…' : 'Search patient, PO, product…'}
               style={{ width: '100%', padding: '9px 12px 9px 34px', border: '1.5px solid #E2E8F0', borderRadius: 20, fontSize: 13, background: '#fff', boxSizing: 'border-box', outline: 'none' }} />
           </div>
           <div style={{ fontSize: 13, color: '#64748B' }}>
             <span style={{ fontWeight: 700, color: '#1C2B4A', fontFamily: 'Georgia, serif' }}>{activeTab.label}</span>
             <span style={{ color: '#94A3B8' }}> — {activeTab.desc}</span>
           </div>
+
+          {/* MSM status filter chips */}
+          {tab === 'msm' && (
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+              {(['Pending', 'Mailed', 'all'] as const).map(f => (
+                <button key={f} onClick={() => setMsmStatusFilter(f)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    background: msmStatusFilter === f ? NAVY : '#fff',
+                    color: msmStatusFilter === f ? '#fff' : '#64748B',
+                    border: `1.5px solid ${msmStatusFilter === f ? NAVY : '#E2E8F0'}`,
+                  }}>
+                  {f === 'all' ? 'All' : f}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Table card */}
         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 12px rgba(28,43,74,0.06)' }}>
-          <RecordsTable
-            records={filtered}
-            loading={loading}
-            onEdit={setEditRecord}
-            onNotes={setNotesRecord}
-            onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' ? handleComplete : undefined)}
-            onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
-            showComplete={tab === 'returns' || tab === 'exchanges'}
-            isQueue={tab === 'queue'}
-            isRefund={tab === 'refund'}
-          />
+          {tab === 'msm' ? (
+            <MSMTable
+              records={msmFiltered}
+              loading={msmLoading}
+              onEdit={setMsmEditRecord}
+              onNotes={setMsmNotesRecord}
+              onMailed={handleMsmMailed}
+            />
+          ) : (
+            <RecordsTable
+              records={filtered}
+              loading={loading}
+              onEdit={setEditRecord}
+              onNotes={setNotesRecord}
+              onComplete={tab === 'queue' ? handleLabelSent : (tab !== 'history' ? handleComplete : undefined)}
+              onRefund={tab === 'returns' || tab === 'exchanges' ? handleRefund : undefined}
+              showComplete={tab === 'returns' || tab === 'exchanges'}
+              isQueue={tab === 'queue'}
+              isRefund={tab === 'refund'}
+            />
+          )}
         </div>
 
         {/* Queue helper text */}
@@ -808,6 +1308,9 @@ export default function LogisticsApp() {
       {notesRecord && <NotesModal record={notesRecord} onClose={() => setNotesRecord(null)} onSave={handleNoteSave} />}
       {newModal && <NewRecordModal type={newModal} onClose={() => setNewModal(null)} onSave={handleCreate} />}
       {editRecord && <EditModal record={editRecord} onClose={() => setEditRecord(null)} onSave={handleUpdate} />}
+      {msmNewOpen && <RequestMSMModal onClose={() => setMsmNewOpen(false)} onSave={handleMsmCreate} />}
+      {msmEditRecord && <MSMEditModal record={msmEditRecord} onClose={() => setMsmEditRecord(null)} onSave={handleMsmUpdate} />}
+      {msmNotesRecord && <MSMNotesModal record={msmNotesRecord} onClose={() => setMsmNotesRecord(null)} onSave={handleMsmNoteSave} />}
 
       {/* Toast */}
       {toast && (
