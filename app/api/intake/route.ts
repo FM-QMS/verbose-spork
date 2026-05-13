@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/utils/logistics'
+import {
+  sendEmail,
+  buildIntakeNotificationEmail,
+  getNotificationRecipients,
+  getNotificationFrom,
+} from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,5 +85,40 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const reference = `${prefix}-${String(data.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`
+
+  // ── Fire-and-log notification email (does NOT fail the submission) ──
+  try {
+    const recipients = getNotificationRecipients()
+    if (recipients.length > 0) {
+      const { subject, html } = buildIntakeNotificationEmail({
+        type,
+        reference,
+        submitterName,
+        patientId,
+        date: type === 'msm' ? insert.date : insert.initiated_date,
+        poNumber:       type !== 'msm' ? insert.po_number       : null,
+        product:        type !== 'msm' ? insert.product         : null,
+        hcpcs:          type !== 'msm' ? insert.hcpcs           : null,
+        manufacturer:   type !== 'msm' ? insert.manufacturer    : null,
+        updatedProduct: type === 'exchange' ? insert.updated_product : null,
+        products:       type === 'msm' ? insert.products : undefined,
+        notes:          body.notes ? String(body.notes).trim() : null,
+      })
+      const result = await sendEmail({
+        to:      recipients,
+        from:    getNotificationFrom(),
+        subject,
+        html,
+      })
+      if (!result.ok) {
+        console.error('[intake] notification email failed:', result.error)
+      }
+    } else {
+      console.warn('[intake] no recipients configured (INTAKE_NOTIFICATION_TO); skipping email')
+    }
+  } catch (e: any) {
+    console.error('[intake] notification email crashed:', e?.message || e)
+  }
+
   return NextResponse.json({ reference, id: data.id }, { status: 201 })
 }
