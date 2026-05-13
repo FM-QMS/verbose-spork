@@ -1063,13 +1063,12 @@ export default function LogisticsApp() {
   }, [tab])
 
   const loadMsm = useCallback(async () => {
-    if (tab !== 'msm') return
     setMsmLoading(true)
     const res = await fetch('/api/msm-devices')
     const data = await res.json()
     setMsmRecords(Array.isArray(data) ? data : [])
     setMsmLoading(false)
-  }, [tab])
+  }, [])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { loadMsm() }, [loadMsm])
@@ -1125,16 +1124,28 @@ export default function LogisticsApp() {
   }
 
   // ── MSM Device handlers ────────────────────────────────────
+  async function msmErrorMessage(res: Response): Promise<string> {
+    try {
+      const j = await res.json()
+      if (j?.error) return j.error
+    } catch {}
+    try {
+      const t = await res.clone().text()
+      if (t && t.length < 200) return `${res.status} ${t}`
+    } catch {}
+    return `HTTP ${res.status} ${res.statusText || ''}`.trim()
+  }
+
   async function handleMsmCreate(data: any) {
     const res = await fetch('/api/msm-devices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) { showToast('MSM device request created'); setMsmNewOpen(false); loadMsm() }
-    else { const e = await res.json().catch(() => ({ error: 'Unknown' })); showToast('Error: ' + e.error) }
+    else { showToast('Error: ' + await msmErrorMessage(res)) }
   }
 
   async function handleMsmUpdate(id: string, data: any) {
     const res = await fetch(`/api/msm-devices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) { showToast('Record updated'); setMsmEditRecord(null); loadMsm() }
-    else { const e = await res.json().catch(() => ({ error: 'Unknown' })); showToast('Error: ' + e.error) }
+    else { showToast('Error: ' + await msmErrorMessage(res)) }
   }
 
   async function handleMsmNoteSave(id: string, notes: string) {
@@ -1171,10 +1182,10 @@ export default function LogisticsApp() {
   const TABS: { id: TabId; label: string; desc: string }[] = [
     { id: 'returns',   label: 'Returns',       desc: 'Active refund requests' },
     { id: 'exchanges', label: 'Exchanges',      desc: 'Active exchange requests' },
+    { id: 'msm',       label: 'MSM Device',     desc: 'MSM device requests' },
     { id: 'queue',     label: 'Label Queue',    desc: 'Labels needed · daily task' },
     { id: 'refund',    label: 'Refunds',         desc: 'Orders moved to refund' },
     { id: 'history',   label: 'Order History',  desc: 'Completed transactions' },
-    { id: 'msm',       label: 'MSM Device',     desc: 'MSM device requests' },
   ]
 
   const activeTab = TABS.find(t => t.id === tab)!
@@ -1228,6 +1239,10 @@ export default function LogisticsApp() {
               {t.label}
               {t.id === 'queue' && tab !== 'queue' && (() => {
                 const n = records.filter(r => !r.completed && (r.shipment_status === 'Return Label Needed' || r.shipment_status === 'Return Label Mailed')).length
+                return n > 0 ? <span style={{ marginLeft: 6, background: PINK, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>{n}</span> : null
+              })()}
+              {t.id === 'msm' && tab !== 'msm' && (() => {
+                const n = msmRecords.filter(r => r.device_status === 'Pending').length
                 return n > 0 ? <span style={{ marginLeft: 6, background: PINK, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>{n}</span> : null
               })()}
             </button>
