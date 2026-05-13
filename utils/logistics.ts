@@ -51,6 +51,7 @@ export interface ReturnRecord {
   hcpcs?: string
   completed: boolean
   completed_at?: string
+  source?: 'app' | 'intake_form'
   created_at: string
   updated_at: string
 }
