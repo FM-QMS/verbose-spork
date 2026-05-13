@@ -53,8 +53,21 @@ interface MSMDeviceRecord {
   device_status: MSMDeviceStatus
   date_mailed?: string | null
   notes?: string | null
+  source?: 'app' | 'intake_form'
   created_at: string
   updated_at: string
+}
+
+// Small "Field" pill shown next to patient ID on records that came in via /request
+function SourcePill({ source }: { source?: string }) {
+  if (source !== 'intake_form') return null
+  return (
+    <span
+      title="Submitted via the field intake form"
+      style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: '#92400E', background: '#FEF3C7', padding: '2px 7px', borderRadius: 10, verticalAlign: 'middle', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      Field
+    </span>
+  )
 }
 
 function StatusBadge({ status, colors }: { status: string; colors: { bg: string; text: string; dot: string } }) {
@@ -543,7 +556,7 @@ function RecordsTable({
             if (isRefund) return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
-                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span><SourcePill source={(r as any).source} /></td>
                 <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).request_number || '—'}</span></td>
                 <td style={tdStyle}><span style={{ fontSize: 12, color: '#64748B' }}>{(r as any).date_of_service ? fmt((r as any).date_of_service) : '—'}</span></td>
                 <td style={tdStyle}><span style={{ fontSize: 12 }}>{(r as any).product_type || r.product || '—'}</span></td>
@@ -565,7 +578,7 @@ function RecordsTable({
             return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.initiated_date)}</span></td>
-                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span><SourcePill source={(r as any).source} /></td>
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{r.po_number || '—'}</span></td>
                 <td style={{ ...tdStyle, maxWidth: 160 }}>
                   {r.product ? (
@@ -980,7 +993,7 @@ function MSMTable({
             return (
               <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
                 <td style={tdStyle}><span style={{ color: '#64748B', fontSize: 12 }}>{fmt(r.date)}</span></td>
-                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span></td>
+                <td style={tdStyle}><span style={{ fontWeight: 600, color: NAVY }}>{r.patient_id}</span><SourcePill source={r.source} /></td>
                 <td style={{ ...tdStyle, maxWidth: 200 }}>
                   {r.products?.length ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
