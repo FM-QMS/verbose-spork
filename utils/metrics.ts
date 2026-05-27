@@ -64,6 +64,7 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { name: 'Angela', initials: 'AN' },
       { name: 'Maria',  initials: 'MA' },
       { name: 'April',  initials: 'AP' },
+      { name: 'Keilan', initials: 'KE' },
     ],
   },
 }
