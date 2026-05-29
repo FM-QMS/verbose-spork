@@ -20,6 +20,8 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'cgm_status',      label: 'Status Changes' },
       { id: 'cgm_ship',        label: 'Scheduled to Ship — Attention Needed' },
       { id: 'cgm_missedship',   label: 'Missed Shipments' },
+      { id: 'cgm_parachute_accepted', label: 'CGM Parachute — Accepted', dir: 'up' },
+      { id: 'cgm_parachute_canceled', label: 'CGM Parachute — Canceled', dir: 'down' },
     ],
     advocates: [
       { name: 'America',  initials: 'AM' },
@@ -28,7 +30,7 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
     ],
   },
   shoe: {
-    label: 'Shoe Tech Advocates', color: '#0F6E56',
+    label: 'Tech Advocates', color: '#0F6E56',
     metrics: [
       { id: 'shoe_welcome',         label: 'Welcome Calls',             dir: 'up' },
       { id: 'shoe_onhold',          label: 'On Hold',                   dir: 'down' },
@@ -38,6 +40,10 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'shoe_voicemail',       label: 'Voicemails' },
       { id: 'shoe_missinginoffice', label: 'Missing Info In-Office' },
       { id: 'shoe_mbireport',       label: 'MBI Report' },
+      { id: 'shoe_parachute_shoes_accepted',       label: 'Shoes Parachute — Accepted',       dir: 'up' },
+      { id: 'shoe_parachute_shoes_canceled',       label: 'Shoes Parachute — Canceled',       dir: 'down' },
+      { id: 'shoe_parachute_compression_accepted', label: 'Compression Parachute — Accepted', dir: 'up' },
+      { id: 'shoe_parachute_compression_canceled', label: 'Compression Parachute — Canceled', dir: 'down' },
     ],
     advocates: [
       { name: 'Gisel',    initials: 'GI' },
