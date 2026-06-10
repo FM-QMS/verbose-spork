@@ -38,7 +38,6 @@ export const ADV_DEPTS: Record<string, DeptDef & { advocates: AdvocateDef[] }> =
       { id: 'shoe_surveydone',      label: 'Shoe Survey Completed',     dir: 'up' },
       { id: 'shoe_surveyneed',      label: 'Shoe Survey Needed' },
       { id: 'shoe_voicemail',       label: 'Voicemails' },
-      { id: 'shoe_missinginoffice', label: 'Missing Info In-Office' },
       { id: 'shoe_mbireport',       label: 'MBI Report' },
       { id: 'shoe_parachute_shoes_accepted',       label: 'Shoes Parachute — Accepted',       dir: 'up' },
       { id: 'shoe_parachute_shoes_canceled',       label: 'Shoes Parachute — Canceled',       dir: 'down' },
